@@ -7,7 +7,11 @@ from bs4 import BeautifulSoup
 import re
 import socks
 import socket
+from stem import Signal
+from stem.control import Controller
+import random
 import http  # this seems to be needed for exception handling in http client
+from config import settings  # local config fileA
 
 
 def define_headers(header_type):
@@ -21,15 +25,35 @@ def define_headers(header_type):
                 "Accept-Language":"en-US,en;q=0.8"})
 
 
-def get_page(in_url, header_type):
+def rotate_ip():
+    random.seed()
+    if random.random() <= 0.33:
+        try:
+            with Controller.from_port(port=9051) as controller:
+                controller.authenticate(password=settings['TOR_PASSPHRASE'])
+                controller.signal(Signal.NEWNYM)
+                print("Tor ip reset!")
+        except Exception as e:
+            print("Failed to contact Tor controller")
+
+
+def init_tor(header_type):
     try:
+        rotate_ip()
         socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
         socket.socket = socks.socksocket
-        req = Request(in_url, data=None, headers=define_headers(header_type))
-        html = urlopen(req)
         r = Request('http://icanhazip.com', headers=define_headers(header_type))
         test = urlopen(r).read()
-        print(test)  # check ip
+        print("Tor network accessed and using ip: %s" % test)  # check ip
+    except:
+        print("There was an error using the TOR network on localhost:9050")
+
+
+def get_page(in_url, header_type):
+    try:
+        init_tor(header_type)
+        req = Request(in_url, data=None, headers=define_headers(header_type))
+        html = urlopen(req)
     except HTTPError as e:
         print("URL: %s - HTTP error: %s " % (in_url, e))
     except URLError as e:
@@ -41,7 +65,7 @@ def get_page(in_url, header_type):
 
     try:
         base_url = re.match(r'^(http[s]?:\/\/[\w\.]*/)', in_url).group(1)
-    except:
+    except Exception as e:
         print("Can't find base url for %s" % in_url)
         base_url = None
 
@@ -85,12 +109,11 @@ def process_output(data):
 
 def main():
     initial_url = "http://mugshots.louisvilleky.gov/archonixxjailsiteslmdc/archonixxjailpublic/"
-    initial_url = "https://www.yell.com/ucs/UcsSearchAction.do?keywords=pizza&location=United+Kingdom&pageNum=7"
+    initial_url = "https://www.yell.com/ucs/UcsSearchAction.do?keywords=pizza&location=United+Kingdom&pageNum=8"
     page, base_url = get_page(initial_url, 1)
     data = process_page(page)
     process_output(data)
     print("Job finished. ***************************************")
-
 
 
 if __name__ == '__main__':
