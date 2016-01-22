@@ -1,99 +1,46 @@
 # -*- coding: utf-8 -*-
-from urllib.request import urlopen
-from urllib.request import Request
-from urllib.error import HTTPError
-from urllib.error import URLError
 from bs4 import BeautifulSoup
 import re
-import socks
-import socket
-from stem import Signal
-from stem.control import Controller
-import random
-import http  # this seems to be needed for exception handling in http client
-from config import settings  # local config fileA
+from config import settings  # local config file
+from HTTPutils import *
 
 
-def define_headers(header_type):
-    if header_type == 1:
-        return({"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
-                "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language":"en-US,en;q=0.8"})
-    else:
-        return({"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
-                "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language":"en-US,en;q=0.8"})
-
-
-def rotate_ip():
-    random.seed()
-    if random.random() <= 0.33:
-        try:
-            with Controller.from_port(port=9051) as controller:
-                controller.authenticate(password=settings['TOR_PASSPHRASE'])
-                controller.signal(Signal.NEWNYM)
-                print("Tor ip reset!")
-        except Exception as e:
-            print("Failed to contact Tor controller")
-
-
-def init_tor(header_type):
+def get_details(entry):
+    this_page, base_url = get_page(entry['url'], 1)
     try:
-        rotate_ip()
-        socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
-        socket.socket = socks.socksocket
-        r = Request('http://icanhazip.com', headers=define_headers(header_type))
-        test = urlopen(r).read()
-        print("Tor network accessed and using ip: %s" % test)  # check ip
-    except:
-        print("There was an error using the TOR network on localhost:9050")
-
-
-def get_page(in_url, header_type):
-    try:
-        init_tor(header_type)
-        req = Request(in_url, data=None, headers=define_headers(header_type))
-        html = urlopen(req)
-    except HTTPError as e:
-        print("URL: %s - HTTP error: %s " % (in_url, e))
-    except URLError as e:
-        print("URL: %s - Server is not reachable: %s" % (in_url, e))
-    except http.client.HTTPException as e:
-        print(e)
-    else:
-        print("Retrieved requested URL: %s" % in_url)
-
-    try:
-        base_url = re.match(r'^(http[s]?:\/\/[\w\.]*/)', in_url).group(1)
+        entries = this_page.find("div", {"id": "inspection-reports-main"}).find_all("p")
+        entry['URN'] = entries[0].find("strong").get_text()
+        entry['street'] = entries[1].contents[0]
+        entry['town'] = entries[1].contents[2]
+        entry['parish'] = entries[1].contents[4]
+        entry['postalcode'] = entries[1].contents[6]
+        entry['Phone'] = entries[2].contents[0]
     except Exception as e:
-        print("Can't find base url for %s" % in_url)
-        base_url = None
-
-    try:
-        bsObj = BeautifulSoup(html, 'lxml')
-    except AttributeError as e:
-        print("Page was not found: %s" % e)
-    else:
-        if bsObj is None:
-            print("Page has no data: %s" % e)
-        else:
-            return(bsObj, base_url)
+        print("Failed to get details for %s" % entry['url'])
+    return(entry)
 
 
-def get_yell(page, data):
-    print(page.body)
-    entries = page.find_all("div", {"class": "businessCapsule"})
+def get_list(page, data, base_url):
+    entries = page.find("ul", {"class": "resultsList"}).find_all("li")
     for e in entries:
-        print(e)
-        data['name'] = e.find("div", {"class": "businessCapsule--title"}).h2.get_text()
-        data['tel'] = e.find("strong", {"class": "businessCapsule--tel"}).get_text()
-        data['yell-url'] = e.find("div", {"class": "businessCapsule--title"}).a.attrs['href']
+        entry = {}
+        entry['name'] = e.find("a").get_text()
+        entry['url'] = ("".join((strip_final_slash(base_url),e.find("a").attrs['href'])))
+        entry['address'] = e.find("p").get_text()
+        entry['URN'] = e.find("p").find_next_sibling("p").get_text()
+        entry['Provider'] = e.find("p").find_next_sibling("p").find_next_sibling("p").get_text()
+        entry = get_details(entry)
+        data[entry['name']] = entry
     return(data)
 
 
-def process_page(page):
-    output = {}
-    output = get_yell(page, output)
+def process_page(page, base_url, current_url, output, pc, recursion_limit):
+    output = get_list(page, output, base_url)
+    pc += 1  # page count up 1
+    if pc <= recursion_limit:
+        next_url = "".join(("http://reports.ofsted.gov.uk/inspection-reports/find-inspection-report/results/1/any/any/any/any/any/any/rg42%201ya/20/any/0/0?page=",str(pc)))
+        page, base_url = get_page(next_url, 1)
+        output = process_page(page, base_url, next_url, output, pc, recursion_limit)
     return(output)
 
 
@@ -110,8 +57,11 @@ def process_output(data):
 def main():
     initial_url = "http://mugshots.louisvilleky.gov/archonixxjailsiteslmdc/archonixxjailpublic/"
     initial_url = "https://www.yell.com/ucs/UcsSearchAction.do?keywords=pizza&location=United+Kingdom&pageNum=8"
+    initial_url = "http://www.medspa.com/united-states?page=1&&reviews&sort=name%20ASC"
+    initial_url = "http://reports.ofsted.gov.uk/inspection-reports/find-inspection-report/results/1/any/any/any/any/any/any/rg42%201ya/20/any/0/0?page=0"
+    output = {}
     page, base_url = get_page(initial_url, 1)
-    data = process_page(page)
+    data = process_page(page, base_url, initial_url, output, 1, 2)
     process_output(data)
     print("Job finished. ***************************************")
 
