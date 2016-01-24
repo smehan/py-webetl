@@ -20,7 +20,6 @@ def get_details(entry):
     return(entry)
 
 
-# page.find("div", {"class":"col-sm-24 businessCapsule businessCapsule-fle js-LocalBusiness"})
 def get_list(page, data, base_url):
     entries = page.find_all("div", {"class": "businessCapsule"})
     for e in entries:
