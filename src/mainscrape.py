@@ -21,16 +21,16 @@ def get_details(entry):
 
 
 def get_list(page, data, base_url):
-    entries = page.find_all("div", {"class": "businessCapsule"})
+    entries = page.find_all("div", {"class": "tile-container"})
     for e in entries:
-        entry = {}
-        entry['name'] = e.find("div", {"class":"businessCapsule--title"}).h2.get_text()
-        entry['url'] = "".join((strip_final_slash(base_url),e.find("div", {"class":"businessCapsule--title"}).a.attrs['href']))
-        # entry['address'] = e.find("p").get_text()
-        # entry['URN'] = e.find("p").find_next_sibling("p").get_text()
-        # entry['Provider'] = e.find("p").find_next_sibling("p").find_next_sibling("p").get_text()
-        entry = get_details(entry)
-        data[entry['name']] = entry
+         entry = {}
+         entry['name'] = e.find("div", {"class":"tile-content"}).get_text()
+    #     entry['url'] = "".join((strip_final_slash(base_url),e.find("div", {"class":"businessCapsule--title"}).a.attrs['href']))
+    #     # entry['address'] = e.find("p").get_text()
+    #     # entry['URN'] = e.find("p").find_next_sibling("p").get_text()
+    #     # entry['Provider'] = e.find("p").find_next_sibling("p").find_next_sibling("p").get_text()
+    #     entry = get_details(entry)
+    #     data[entry['name']] = entry
     return(data)
 
 
@@ -38,7 +38,7 @@ def process_page(page, base_url, current_url, output, pc, recursion_limit):
     output = get_list(page, output, base_url)
     pc += 1  # page count up 1
     if pc <= recursion_limit:
-        next_url = "".join(("https://www.yell.com/ucs/UcsSearchAction.do?keywords=pizza&location=United+Kingdom&pageNum=",str(pc)))
+        next_url = "".join(("http://www.walmart.com/search/?query=cooler&page=",str(pc)))
         page, base_url = get_page(next_url, 1)
         output = process_page(page, base_url, next_url, output, pc, recursion_limit)
     return(output)
@@ -57,6 +57,9 @@ def process_output(data):
 def main():
     initial_url = "http://mugshots.louisvilleky.gov/archonixxjailsiteslmdc/archonixxjailpublic/"
     initial_url = "https://www.yell.com/ucs/UcsSearchAction.do?keywords=pizza&location=United+Kingdom&pageNum=8"
+    initial_url = "https://worldgaming.com/tournaments"
+    initial_url = "http://www.walmart.com/search/?query=cooler&page=1"
+    # initial_url = "https://l3com.taleo.net/careersection/l3_ext_us/jobsearch.ftl"
     # TODO need to clean this up so that I can pass the initial_cookie and initial_url as part of the object init
     output = {}
     page, base_url = get_page(initial_url, 1)
