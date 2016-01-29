@@ -33,10 +33,9 @@ class WalmartScraper(object):
         self.run = True
 
     def scrape(self):
-        page = self.get_page(url=self.next_page_url())
         while self.run is True:
             page = self.get_page(url=self.next_page_url())
-            # self.get_list(page)
+            self.get_list(page)
         print("Job Finished!")
         self.driver.quit()
 
@@ -77,8 +76,7 @@ class WalmartScraper(object):
         immitate_user()
         next = initial_url
         next += str(self.pc)
-        print(next)
-        if self.pc == 11:
+        if self.pc == 3:
             self.run = False  # recurssion limit
         return next
 
@@ -86,13 +84,17 @@ class WalmartScraper(object):
     def get_page(self, url=None):
         if url is None:
             url = initial_url
-        self.driver.get(url)
-        self.driver.get_cookies()
+        try:
+            print("Getting %s" % url)
+            self.driver.get(url)
+            self.driver.get_cookies()
+        except Exception as e:
+            print(url, e)
         try:
             wait = WebDriverWait(self.driver, 10)
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div")))
         except Exception as e:
-            print(e)
+            print("WebDriverWait error  %s with url %s" % (url,e))
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
 
