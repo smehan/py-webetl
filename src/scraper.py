@@ -57,7 +57,6 @@ class WalmartScraper(object):
             else:
                 entry = {}
                 entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
-                entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
                 if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
                     entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
                 else:
