@@ -24,6 +24,9 @@ Vagrant.configure(2) do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # config.vm.network "forwarded_port", guest: 80, host: 8080
 
+  config.vm.network "forwarded_port", guest: 3306, host: 3306
+  config.vm.network "forwarded_port", guest: 9000, host: 9000
+  
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
   # config.vm.network "private_network", ip: "192.168.33.10"
@@ -53,6 +56,10 @@ Vagrant.configure(2) do |config|
   #
   # View the documentation for the provider you are using for more
   # information on available options.
+    config.vm.provider "virtualbox" do |vb|
+	vb.memory = "2404"
+    	vb.cpus = "2"
+    end
 
   # Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
   # such as FTP and Heroku are also available. See the documentation at
@@ -64,8 +71,8 @@ Vagrant.configure(2) do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   sudo apt-get update
+   config.vm.provision "shell", inline: <<-SHELL
+     sudo apt-get update
   #   sudo apt-get install -y apache2
-  # SHELL
+   SHELL
 end
