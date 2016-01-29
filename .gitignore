@@ -109,3 +109,4 @@ crashlytics-build.properties
 
 # ignore site-specific configuration file
 config.yaml
+az_congif.yaml
