@@ -1,4 +1,7 @@
-# -*- coding: utf-8 -*-
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
+#  -*- coding: utf-8 -*-
+
 from urllib.request import urlopen
 from urllib.request import Request
 from urllib.error import HTTPError

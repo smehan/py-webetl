@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
+#  -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 import re
 from config import settings  # local config file
