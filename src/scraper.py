@@ -9,7 +9,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from HTTPutils import get_base_url, strip_final_slash
+from HTTPutils import get_base_url, strip_final_slash, immitate_user
 
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
@@ -18,7 +18,7 @@ dcap["phantomjs.page.settings.userAgent"] = (
     "(KHTML, like Gecko) Chrome/15.0.87"
 )
 
-initial_url = "http://www.walmart.com/browse/toys/action-figures/4171_4172/?page=1"
+initial_url = "http://www.walmart.com/browse/toys/action-figures/4171_4172/?page="
 # initial_url = 'http://www.dailybusinessreview.com/miami-dade-county?slreturn=20160028194706&atex-class=123&start=11&end=20'
 
 
@@ -29,10 +29,14 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.base_url = strip_final_slash(get_base_url(initial_url))
+        self.pc = 0
+        self.run = True
 
     def scrape(self):
-        page = self.get_page()
-        self.get_list(page)
+        page = self.get_page(url=self.next_page_url())
+        while self.run is True:
+            page = self.get_page(url=self.next_page_url())
+            # self.get_list(page)
         print("Job Finished!")
         self.driver.quit()
 
@@ -66,6 +70,16 @@ class WalmartScraper(object):
                 entry['weight'] = self.get_shipping_weight(entry)
                 entry['az_price'] = self.get_az_price(entry['name'])
                 self.process_output(entry)
+
+
+    def next_page_url(self):
+        self.pc += 1
+        next = initial_url
+        next += str(self.pc)
+        print(next)
+        if self.pc == 11:
+            self.run = False  # recurssion limit
+        return next
 
 
     def get_page(self, url=None):
