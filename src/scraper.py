@@ -74,6 +74,7 @@ class WalmartScraper(object):
 
     def next_page_url(self):
         self.pc += 1
+        immitate_user()
         next = initial_url
         next += str(self.pc)
         print(next)
