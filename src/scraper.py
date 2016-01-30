@@ -8,8 +8,12 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from urllib.error import HTTPError
 from bs4 import BeautifulSoup
 from HTTPutils import get_base_url, strip_final_slash, immitate_user
+import csv
+import os
+import time
 
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
@@ -29,26 +33,75 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.base_url = strip_final_slash(get_base_url(initial_url))
-        self.pc = 0
+        self.pc = 10
+        self.shipping_rate = 0.75  # $rate/lb
         self.run = True
+        self.outfile = "../data/action_figs_20160129.csv"
+        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'url', 'img')
 
     def scrape(self):
         while self.run is True:
-            page = self.get_page(url=self.next_page_url())
+            url = self.next_page_url()
+            try:
+                page = self.get_page(url)
+            except Exception as e:
+                print("Error with %s and skipped" % url)
+                continue
             self.get_list(page)
         print("Job Finished!")
         self.driver.quit()
 
+    def init_output(self):
+        if not os.path.exists(self.outfile):
+            with open(self.outfile, "w", encoding='utf-8') as fh:
+                outwriter = csv.DictWriter(fh,
+                                           fieldnames=self.fieldnames,
+                                           delimiter="\t")
+                outwriter.writeheader()
+
     def process_output(self, data):
-        print("Item: %s | Price: %s | Amazon Price: %s | Weight: %s | URL: %s | img_url: %s" % (data['name'], data['price'], data['az_price'], data['weight'], data['url'], data['img']))
+        with open(self.outfile, 'a', encoding='utf-8') as fh:
+            outwriter = csv.DictWriter(fh,
+                                       fieldnames=self.fieldnames,
+                                       delimiter="\t")
+            outwriter.writerow(data)
 
     def get_shipping_weight(self, entry):
-        sp = self.get_page(entry['url'])
+        try:
+            sp = self.get_page(entry['url'])
+        except Exception as e:
+            print("%s raised %s" % (entry['url'], e))
+            immitate_user()
+            return "Weight not fetched"  # TODO: consider an error list
         try:
             weight = sp.find("td", text=re.compile(r'Shipping')).next_sibling.next_sibling.get_text()
         except Exception as e:
             weight = "Not Available"
         return(weight)
+
+    def get_dollar_amount(self, f):
+        if isinstance(f, str):
+            return round(float(f.replace('$','')), 2)
+        else:
+            return f
+
+    def get_net(self, data):
+        price = self.get_dollar_amount(data['price'])
+        if data['weight'] == "Weight not fetched" or data['weight'] == "Not Available":
+            weight = 0.0
+        else:
+            weight = float(data['weight'])
+        if "o" in data['az_price']:
+            az_price = 0.0
+        else:
+            az_price = self.get_dollar_amount(data['az_price'])
+        net = (az_price - (price*1.08 + az_price*0.3 + weight*self.shipping_rate))
+        return round(net, 2)
+
+    def get_roi(self, data):
+        net = self.get_dollar_amount(data['net'])
+        price = self.get_dollar_amount(data['price'])
+        return round(net/price, 2)
 
     def get_list(self, page):
         entries = page.find("ul", {"class": "tile-list-grid"})
@@ -68,8 +121,9 @@ class WalmartScraper(object):
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
                 entry['weight'] = self.get_shipping_weight(entry)
                 entry['az_price'] = self.get_az_price(entry['name'])
+                entry['net'] = self.get_net(entry)
+                entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
-
 
     def next_page_url(self):
         self.pc += 1
@@ -80,32 +134,41 @@ class WalmartScraper(object):
             self.run = False  # recurssion limit
         return next
 
-
     def get_page(self, url=None):
         if url is None:
             url = initial_url
         try:
             print("Getting %s" % url)
             self.driver.get(url)
-            self.driver.get_cookies()
+            # self.driver.get_cookies()
+        except ValueError as e:
+            time.sleep(5)
+            try:
+                self.driver.get(url)
+            except:
+                raise
         except Exception as e:
             print(url, e)
         try:
-            wait = WebDriverWait(self.driver, 10)
+            wait = WebDriverWait(self.driver, 3)
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div")))
         except Exception as e:
-            print("WebDriverWait error  %s with url %s" % (url,e))
+            print("WebDriverWait error")
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
 
     def get_az_price(self, title):  #TODO: going to need a dict of categories to insert into url
         url = "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Dtoys-and-games&field-keywords="
         url += title.strip().replace(' ', '+')  #TODO: need something more robust for odd chars in title
-        page = self.get_page(url)
-        az_price = page.find("span", {"class":"a-color-price"}).get_text()
+        try:
+            page = self.get_page(url)
+            az_price = page.find("span", {"class":"a-color-price"}).get_text()
+        except Exception as e:
+            az_price = "Not found"
         return az_price
 
 
 if __name__ == '__main__':
     scraper = WalmartScraper()
+    scraper.init_output()
     scraper.scrape()
