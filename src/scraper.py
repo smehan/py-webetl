@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
+from amazon.api import AmazonAPI, AmazonSearch
 from HTTPutils import get_base_url, strip_final_slash, immitate_user
 import csv
 import os
@@ -86,15 +87,14 @@ class WalmartScraper(object):
             return f
 
     def get_net(self, data):
+        az_price = data['az_price']
+        if az_price == 0.0:
+            return round(0.0,2)
         price = self.get_dollar_amount(data['price'])
         if data['weight'] == "Weight not fetched" or data['weight'] == "Not Available":
             weight = 0.0
         else:
             weight = float(data['weight'])
-        if "o" in data['az_price']:
-            az_price = 0.0
-        else:
-            az_price = self.get_dollar_amount(data['az_price'])
         net = (az_price - (price*1.08 + az_price*0.3 + weight*self.shipping_rate))
         return round(net, 2)
 
@@ -158,13 +158,17 @@ class WalmartScraper(object):
         return page
 
     def get_az_price(self, title):  #TODO: going to need a dict of categories to insert into url
-        url = "http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Dtoys-and-games&field-keywords="
-        url += title.strip().replace(' ', '+')  #TODO: need something more robust for odd chars in title
+        amazon = AmazonAPI('***','berryland-20')
+        az_price = 1000000.0
         try:
-            page = self.get_page(url)
-            az_price = page.find("span", {"class":"a-color-price"}).get_text()
-        except Exception as e:
-            az_price = "Not found"
+            products = amazon.search(Title=title, SearchIndex='Toys')
+            for i, p in enumerate(products):
+                price = p.price_and_currency[0]
+                if price < az_price:
+                    az_price = price
+        except Exception as e:  #  amazon.api.SearchException doesn't work as doesn't inherit from BaseException
+            if az_price == 1000000.0:
+                az_price = 0.0
         return az_price
 
 
