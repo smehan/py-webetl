@@ -76,3 +76,18 @@ Vagrant.configure(2) do |config|
   #   sudo apt-get install -y apache2
    SHELL
 end
+
+
+# these are commands to get python3.3 into guest
+# need add-apt-repo so need package
+# sudo apt-get install -y software-properties-common
+# then
+# sudo apt-get install -y python-software-properties
+# then getting old distro from deadsnakes
+# sudo add-apt-repository -y ppa:fkrull/deadsnakes
+# then update to get the repo list into cache
+# sudo apt-get update
+# now you can see it in the cache
+# sudo apt-cache show python3.3
+# and to get it
+# sudo apt-get install -y python3.3 python3.3-dev
