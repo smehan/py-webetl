@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.error import HTTPError
 from bs4 import BeautifulSoup
-from amazon.api import AmazonAPI, AmazonSearch
+from AZProdSearch import *
 from HTTPutils import get_base_url, strip_final_slash, immitate_user
 import csv
 import os
@@ -34,11 +34,12 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.base_url = strip_final_slash(get_base_url(initial_url))
-        self.pc = 10
+        self.pc = 4
         self.shipping_rate = 0.75  # $rate/lb
         self.run = True
         self.outfile = "../data/action_figs_20160129.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'url', 'img')
+        self.az = AZ()
 
     def scrape(self):
         while self.run is True:
@@ -82,7 +83,7 @@ class WalmartScraper(object):
 
     def get_dollar_amount(self, f):
         if isinstance(f, str):
-            return round(float(f.replace('$','')), 2)
+            return round(float(re.match(r'\$(\d+.\d\d)', f.strip()).group(1)), 2)
         else:
             return f
 
@@ -95,7 +96,10 @@ class WalmartScraper(object):
             weight = 0.0
         else:
             weight = float(data['weight'])
-        net = (az_price - (price*1.08 + az_price*0.3 + weight*self.shipping_rate))
+        try:
+            net = (az_price - (price*1.08 + az_price*0.3 + weight*self.shipping_rate))
+        except Exception as e:
+            net = 0.0
         return round(net, 2)
 
     def get_roi(self, data):
@@ -106,21 +110,24 @@ class WalmartScraper(object):
     def get_list(self, page):
         entries = page.find("ul", {"class": "tile-list-grid"})
         for e in entries:
+            time.sleep(2)
             if len(e) == 1:
                 continue
             elif e.name == "script":
                 continue
             else:
                 entry = {}
-                entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
+                try:
+                    entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
+                except:
+                    continue
                 if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
                     entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
                 else:
                     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
                 entry['price'] = e.find("span", {"class":"price-display"}).get_text()
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                entry['weight'] = self.get_shipping_weight(entry)
-                entry['az_price'] = self.get_az_price(entry['name'])
+                entry['az_price'], entry['weight'] = self.az.find_best_match(entry['name'], 'Toys')
                 entry['net'] = self.get_net(entry)
                 entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
@@ -130,7 +137,7 @@ class WalmartScraper(object):
         immitate_user()
         next = initial_url
         next += str(self.pc)
-        if self.pc == 3:
+        if self.pc == 10:
             self.run = False  # recurssion limit
         return next
 
@@ -149,27 +156,13 @@ class WalmartScraper(object):
                 raise
         except Exception as e:
             print(url, e)
-        try:
-            wait = WebDriverWait(self.driver, 3)
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div")))
-        except Exception as e:
-            print("WebDriverWait error")
+        # try:
+        #     wait = WebDriverWait(self.driver, 3)
+        #     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div")))
+        # except Exception as e:
+        #     print("WebDriverWait error")
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
-
-    def get_az_price(self, title):  #TODO: going to need a dict of categories to insert into url
-        amazon = AmazonAPI('***','berryland-20')
-        az_price = 1000000.0
-        try:
-            products = amazon.search(Title=title, SearchIndex='Toys')
-            for i, p in enumerate(products):
-                price = p.price_and_currency[0]
-                if price < az_price:
-                    az_price = price
-        except Exception as e:  #  amazon.api.SearchException doesn't work as doesn't inherit from BaseException
-            if az_price == 1000000.0:
-                az_price = 0.0
-        return az_price
 
 
 if __name__ == '__main__':
