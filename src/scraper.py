@@ -5,16 +5,11 @@
 import re
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from urllib.error import HTTPError
 from bs4 import BeautifulSoup
 from AZProdSearch import *
-from HTTPutils import get_base_url, strip_final_slash, immitate_user
+from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 import csv
 import os
-import time
 
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
@@ -23,7 +18,6 @@ dcap["phantomjs.page.settings.userAgent"] = (
     "(KHTML, like Gecko) Chrome/15.0.87"
 )
 
-initial_url = "http://www.walmart.com/browse/toys/action-figures/4171_4172/?page="
 # initial_url = 'http://www.dailybusinessreview.com/miami-dade-county?slreturn=20160028194706&atex-class=123&start=11&end=20'
 
 
@@ -31,19 +25,33 @@ test_xml = '<?xml version="1.0" ?><ItemLookupResponse xmlns="http://webservices.
 
 class WalmartScraper(object):
     def __init__(self):
+
+        with open("config.yaml", "r") as f:
+            settings = yaml.load(f)
+
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
-        self.base_url = strip_final_slash(get_base_url(initial_url))
-        self.pc = 4
         self.shipping_rate = 0.75  # $rate/lb
         self.run = True
         self.outfile = "../data/action_figs_20160129.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'url', 'img')
+        self.url_cats = settings['toys']
+        self.site_url = settings['site_url']
+        self.page_url = settings['page_url']
+        self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
+        self.pc = 0
 
-    def scrape(self):
+    def scrape(self, pc=None, change_url=None):
+        """
+
+        :param change_url is the changing part of wider site url, if there
+        are multiple sections to hit.
+        """
+        if pc is not None:
+            self.pc = pc
         while self.run is True:
-            url = self.next_page_url()
+            url = self.next_page_url(build_search_url(self.site_url, change_url, self.page_url))
             try:
                 page = self.get_page(url)
             except Exception as e:
@@ -73,7 +81,7 @@ class WalmartScraper(object):
             sp = self.get_page(entry['url'])
         except Exception as e:
             print("%s raised %s" % (entry['url'], e))
-            immitate_user()
+            imitate_user(1)
             return "Weight not fetched"  # TODO: consider an error list
         try:
             weight = sp.find("td", text=re.compile(r'Shipping')).next_sibling.next_sibling.get_text()
@@ -110,7 +118,7 @@ class WalmartScraper(object):
     def get_list(self, page):
         entries = page.find("ul", {"class": "tile-list-grid"})
         for e in entries:
-            time.sleep(2)
+            imitate_user(1)
             if len(e) == 1:
                 continue
             elif e.name == "script":
@@ -132,24 +140,24 @@ class WalmartScraper(object):
                 entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
 
-    def next_page_url(self):
+    def next_page_url(self, url):
         self.pc += 1
-        immitate_user()
-        next = initial_url
-        next += str(self.pc)
-        if self.pc == 10:
+        imitate_user(1)
+        next_url = url
+        if self.page_url:
+            next_url += self.page_url
+        next_url += str(self.pc)
+        if self.pc == 25:
             self.run = False  # recurssion limit
-        return next
+        return next_url
 
-    def get_page(self, url=None):
-        if url is None:
-            url = initial_url
+    def get_page(self, url):
         try:
             print("Getting %s" % url)
             self.driver.get(url)
             # self.driver.get_cookies()
         except ValueError as e:
-            time.sleep(5)
+            imitate_user(5)
             try:
                 self.driver.get(url)
             except:
@@ -168,4 +176,5 @@ class WalmartScraper(object):
 if __name__ == '__main__':
     scraper = WalmartScraper()
     scraper.init_output()
-    scraper.scrape()
+    for cat in scraper.url_cats:
+        scraper.scrape(0, cat)

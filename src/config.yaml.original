@@ -1,1 +1,11 @@
 TOR_PASSPHRASE: YOUR AUTHENTICATION PASSPHRASE
+
+## site search url components
+site_url: "http://www.example.com/browse"
+page_url: "/?page="
+
+## category url list
+
+toys :
+ - "/section/part/4171_4172"
+ - "/section/part/4171_4172_11567"

@@ -42,16 +42,22 @@ def rotate_ip():
             print("Failed to contact Tor controller")
 
 
-def immitate_user():
+def imitate_user(top=1):
+    """
+    This will cause system to pause for top*60 seconds. Makes a random
+    pause on each call, to create random variability in browser requests.
+    :param top: number of minutes to delay before next http call.
+    :return:
+    """
     random.seed()
-    delay = random.random()*60
+    delay = random.random()*top*60  # time.sleep expects seconds
     time.sleep(delay)
 
 
 def init_tor(header_type):
     try:
         rotate_ip()
-        immitate_user()
+        imitate_user()
         socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
         socket.socket = socks.socksocket
         r = Request('http://icanhazip.com', headers=define_headers(header_type))
@@ -96,6 +102,27 @@ def get_base_url(url):
         base_url = None
     return(base_url)
 
+
+def build_search_url(stub, cat=None, additional_url=None):
+    """
+    This is a utility method that will build out a complex site url
+    from up to three components.
+    :param stub: this is a string representing the non-changing
+    part of a search space url, e.g. "http://www.example.com/search/browse"
+    :param cat: this is a string passed that is the sectional part of a site search, e.g.
+    "/section1/sector4"
+    :param additional_url: this is a string that represents anything following the changing
+    categorical information, e.g. "/get_results?param1=word&page="
+    :return: the combined url to use as the search url. Page parameters value will be added
+    elsewhere. Return example is
+    "http://www.example.com/search/browse//section1/sector4/get_results?param1=word&page="
+    """
+    if cat is None:
+        search_url = stub
+    else:
+        search_url = stub
+        search_url += cat
+    return(search_url)
 
 def strip_final_slash(url):
     output = re.match(r'(.*)/', url).group(1)
