@@ -23,8 +23,10 @@ class AZ(object):
 
         self.amazon = AmazonAPI(self.access_key, self.secret_key, self.associate_tag)
 
-    def find_best_match(self, title, cat='All'):
+    def find_best_match(self, title, cat='All'):  # TODO: consider using cat='Blended' for default
         self._find_by_title(title, cat)
+        if self.az_price == 0:
+            self._find_by_key(title, cat)
         self._get_attrs()
         return self.az_price, self.az_weight, self.az_sales_rank, self.az_url
 
@@ -32,6 +34,22 @@ class AZ(object):
         lowest = 0.0
         try:
             products = self.amazon.search(Title=title, SearchIndex=cat)
+            for i,p in enumerate(products):
+                price = p.price_and_currency[0]
+                if lowest == 0.0:
+                    lowest = price
+                    self.az_asin = p.asin
+                elif price < lowest:
+                    lowest = price
+                    self.az_asin = p.asin
+        except Exception as e:
+            pass
+        self.az_price = lowest
+
+    def _find_by_key(self, title, cat):
+        lowest = 0.0
+        try:
+            products = self.amazon.search(Keywords=title, SearchIndex=cat)
             for i,p in enumerate(products):
                 price = p.price_and_currency[0]
                 if lowest == 0.0:
