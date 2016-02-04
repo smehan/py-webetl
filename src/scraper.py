@@ -79,18 +79,6 @@ class WalmartScraper(object):
                                        delimiter="\t")
             outwriter.writerow(data)
 
-    def get_shipping_weight(self, entry):
-        try:
-            sp = self.get_page(entry['url'])
-        except Exception as e:
-            print("%s raised %s" % (entry['url'], e))
-            imitate_user(1)
-            return "Weight not fetched"  # TODO: consider an error list
-        try:
-            weight = sp.find("td", text=re.compile(r'Shipping')).next_sibling.next_sibling.get_text()
-        except Exception as e:
-            weight = "Not Available"
-        return(weight)
 
     def get_dollar_amount(self, f):
         if isinstance(f, str):
