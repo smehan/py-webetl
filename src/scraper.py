@@ -32,8 +32,7 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
-        self.run = True
-        self.outfile = "../data/action_figs_20160129.csv"
+        self.outfile = "../data/toys_20160203.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'url', 'img')
         self.url_cats = settings['toys']
         self.site_url = settings['site_url']
@@ -48,6 +47,7 @@ class WalmartScraper(object):
         :param change_url is the changing part of wider site url, if there
         are multiple sections to hit.
         """
+        self.run = True  # initialization of a site/section.
         if pc is not None:
             self.pc = pc
         while self.run is True:
@@ -58,7 +58,10 @@ class WalmartScraper(object):
                 print("Error with %s and skipped" % url)
                 continue
             self.get_list(page)
-        print("Job Finished!")
+        if change_url is None:
+            print("Site %s finished" % self.site_url)
+        else:
+            print("Section %s finished" % change_url)
         self.driver.quit()
 
     def init_output(self):
@@ -118,12 +121,12 @@ class WalmartScraper(object):
     def get_list(self, page):
         entries = page.find("ul", {"class": "tile-list-grid"})
         for e in entries:
-            imitate_user(1)
             if len(e) == 1:
                 continue
             elif e.name == "script":
                 continue
             else:
+                imitate_user(1)
                 entry = {}
                 try:
                     entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
@@ -147,7 +150,7 @@ class WalmartScraper(object):
         if self.page_url:
             next_url += self.page_url
         next_url += str(self.pc)
-        if self.pc == 25:
+        if self.pc == 1:
             self.run = False  # recurssion limit
         return next_url
 
