@@ -25,6 +25,13 @@ class AZ(object):
         self.amazon = AmazonAPI(self.access_key, self.secret_key, self.associate_tag)
 
     def find_best_match(self, title, cat='All'):  # TODO: consider using cat='Blended' for default
+        """
+
+        :param title: string containing the source site product title
+        :param cat: string containing the category for searchindex on amazon
+        :return: price, weight, sales_rank, offer_url and T if match occurred on title search,
+        K if match occurred on keyword search
+        """
         self._find_by_title(title, cat)
         if self.az_price != 0:
             self.az_match = 'T'
