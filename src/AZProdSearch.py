@@ -20,15 +20,20 @@ class AZ(object):
         self.az_weight = None
         self.az_sales_rank = None
         self.az_url = None
+        self.az_match = None
 
         self.amazon = AmazonAPI(self.access_key, self.secret_key, self.associate_tag)
 
     def find_best_match(self, title, cat='All'):  # TODO: consider using cat='Blended' for default
         self._find_by_title(title, cat)
+        if self.az_price != 0:
+            self.az_match = 'T'
         if self.az_price == 0:
             self._find_by_key(title, cat)
+            if self.az_price != 0:
+                self.az_match = 'K'
         self._get_attrs()
-        return self.az_price, self.az_weight, self.az_sales_rank, self.az_url
+        return self.az_price, self.az_weight, self.az_sales_rank, self.az_match, self.az_url
 
     def _find_by_title(self, title, cat):
         lowest = 0.0
