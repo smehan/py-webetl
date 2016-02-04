@@ -33,7 +33,7 @@ class WalmartScraper(object):
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
         self.outfile = "../data/toys_20160203.csv"
-        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'url', 'img')
+        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'az_sales_rank', 'url', 'img')
         self.url_cats = settings['toys']
         self.site_url = settings['site_url']
         self.page_url = settings['page_url']
@@ -138,7 +138,7 @@ class WalmartScraper(object):
                     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
                 entry['price'] = e.find("span", {"class":"price-display"}).get_text()
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                entry['az_price'], entry['weight'] = self.az.find_best_match(entry['name'], 'Toys')
+                entry['az_price'], entry['weight'], entry['az_sales_rank'] = self.az.find_best_match(entry['name'], 'Toys')
                 entry['net'] = self.get_net(entry)
                 entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
