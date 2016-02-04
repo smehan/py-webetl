@@ -39,6 +39,8 @@ class AZ(object):
             self._find_by_key(title, cat)
             if self.az_price != 0:
                 self.az_match = 'K'
+        if self.az_price == 0:  # we didn't find any match so clean remaining attrs
+            (self.az_weight, self.az_sales_rank, self.az_match, self.az_url) = (0, 0, 'N', '')
         self._get_attrs()
         return self.az_price, self.az_weight, self.az_sales_rank, self.az_match, self.az_url
 
@@ -46,7 +48,7 @@ class AZ(object):
         lowest = 0.0
         try:
             products = self.amazon.search(Title=title, SearchIndex=cat)
-            for i,p in enumerate(products):
+            for i, p in enumerate(products):
                 price = p.price_and_currency[0]
                 if lowest == 0.0:
                     lowest = price
@@ -91,8 +93,7 @@ class AZ(object):
             else:
                 w = float(w)*0.01  # its coming from amazon in hundreth-pounds seemingly
         else:  # there was no product found.
-            r, w = 0
-            u = None
+            (r, w, u) = (0, 0, '')
         self.az_sales_rank = r
         self.az_weight = w
         self.az_url = u
