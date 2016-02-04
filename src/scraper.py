@@ -18,11 +18,6 @@ dcap["phantomjs.page.settings.userAgent"] = (
     "(KHTML, like Gecko) Chrome/15.0.87"
 )
 
-# initial_url = 'http://www.dailybusinessreview.com/miami-dade-county?slreturn=20160028194706&atex-class=123&start=11&end=20'
-
-
-test_xml = '<?xml version="1.0" ?><ItemLookupResponse xmlns="http://webservices.amazon.com/AWSECommerceService/2013-08-01"><OperationRequest><HTTPHeaders><Header Name="UserAgent" Value="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36"></Header></HTTPHeaders><RequestId>2386c578-2872-40fe-aab9-9846d157bb69</RequestId><Arguments><Argument Name="AWSAccessKeyId" Value="AKIAJ4CJCEX5VUXSOEPQ"></Argument><Argument Name="AssociateTag" Value="berryland-20"></Argument><Argument Name="IdType" Value="ISBN"></Argument><Argument Name="ItemId" Value="0136042597"></Argument><Argument Name="Operation" Value="ItemLookup"></Argument><Argument Name="ResponseGroup" Value="Reviews"></Argument><Argument Name="ReviewPage" Value="1"></Argument><Argument Name="SearchIndex" Value="Books"></Argument><Argument Name="Service" Value="AWSECommerceService"></Argument><Argument Name="Timestamp" Value="2016-01-28T23:45:24Z"></Argument><Argument Name="Version" Value="2013-08-01"></Argument><Argument Name="Signature" Value="CyY+3ZbUW9x9tobruojeMYdRngDBPZdI+kk3aUjU4Fs="></Argument></Arguments><RequestProcessingTime>0.0680730000000000</RequestProcessingTime></OperationRequest><Items><Request><IsValid>True</IsValid><ItemLookupRequest><IdType>ISBN</IdType><ItemId>0136042597</ItemId><ResponseGroup>Reviews</ResponseGroup><SearchIndex>Books</SearchIndex><VariationPage>All</VariationPage></ItemLookupRequest></Request><Item><ASIN>0136042597</ASIN><CustomerReviews><IFrameURL>http://www.amazon.com/reviews/iframe?akid=AKIAJ4CJCEX5VUXSOEPQ&amp;alinkCode=xm2&amp;asin=0136042597&amp;atag=berryland-20&amp;exp=2016-01-29T23%3A52%3A04Z&amp;v=2&amp;sig=mGtz6x7pNYoKnFFyq%2BkCYgpBIHYVWq2t%2B8Nhg6sz%2Fn8%3D</IFrameURL><HasReviews>true</HasReviews></CustomerReviews></Item><Item><ASIN>B008VIWTIY</ASIN><CustomerReviews><IFrameURL>http://www.amazon.com/reviews/iframe?akid=AKIAJ4CJCEX5VUXSOEPQ&amp;alinkCode=xm2&amp;asin=B008VIWTIY&amp;atag=berryland-20&amp;exp=2016-01-29T23%3A52%3A04Z&amp;v=2&amp;sig=zOUyC%2BDfG5b3tHc%2F3x4%2FFPYA4Y0UDV%2FWWyC2I6TmLjA%3D</IFrameURL><HasReviews>true</HasReviews></CustomerReviews></Item></Items></ItemLookupResponse>'
-
 class WalmartScraper(object):
     def __init__(self):
 
@@ -33,7 +28,7 @@ class WalmartScraper(object):
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
         self.outfile = "../data/toys_20160203.csv"
-        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'az_sales_rank', 'url', 'img')
+        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'az_sales_rank', 'url', 'img', 'az_url')
         self.url_cats = settings['toys']
         self.site_url = settings['site_url']
         self.page_url = settings['page_url']
@@ -125,7 +120,7 @@ class WalmartScraper(object):
                     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
                 entry['price'] = e.find("span", {"class":"price-display"}).get_text()
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                entry['az_price'], entry['weight'], entry['az_sales_rank'] = self.az.find_best_match(entry['name'], 'Toys')
+                entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_url'] = self.az.find_best_match(entry['name'], 'Toys')
                 entry['net'] = self.get_net(entry)
                 entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
@@ -138,7 +133,7 @@ class WalmartScraper(object):
             next_url += self.page_url
         next_url += str(self.pc)
         if self.pc == 1:
-            self.run = False  # recurssion limit
+            self.run = False  # recursion limit
         return next_url
 
     def get_page(self, url):
