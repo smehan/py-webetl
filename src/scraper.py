@@ -79,7 +79,6 @@ class WalmartScraper(object):
                                        delimiter="\t")
             outwriter.writerow(data)
 
-
     def get_dollar_amount(self, f):
         if isinstance(f, str):
             return round(float(re.match(r'\$(\d+.\d\d)', f.strip()).group(1)), 2)

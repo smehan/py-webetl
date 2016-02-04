@@ -18,16 +18,16 @@ class AZ(object):
         self.az_price = None
         self.az_asin = None
         self.az_weight = None
-        self.az_salesrank = None
+        self.az_sales_rank = None
 
         self.amazon = AmazonAPI(self.access_key, self.secret_key, self.associate_tag)
 
     def find_best_match(self, title, cat='All'):
 
         self._find_by_title(title, cat)
-        self.az_salesrank = self._get_sales_rank()
+        self.az_sales_rank = self._get_sales_rank()
         self.az_weight = self._get_weight()
-        return self.az_price, self.az_weight, self.az_salesrank
+        return self.az_price, self.az_weight, self.az_sales_rank
 
     def _find_by_title(self, title, cat):
         lowest = 0.0
@@ -49,9 +49,11 @@ class AZ(object):
         if self.az_asin is not None:
             try:
                 p = self.amazon.lookup(ItemId=self.az_asin)
-                r = p.sales_rank()
+                r = int(p.sales_rank)
             except:
-                r = 0  # something wrong couldnt' get a sales rank
+                pass
+            if r is None:
+                r = 0
         return r
 
     def _get_weight(self):
