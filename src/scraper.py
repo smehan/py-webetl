@@ -41,6 +41,7 @@ class WalmartScraper(object):
 
         :param change_url is the changing part of wider site url, if there
         are multiple sections to hit.
+        :param pc is an integer indicating where to start with a paginated url.
         """
         self.run = True  # initialization of a site/section.
         if pc is not None:
@@ -132,7 +133,7 @@ class WalmartScraper(object):
         if self.page_url:
             next_url += self.page_url
         next_url += str(self.pc)
-        if self.pc == 1:
+        if self.pc == 12:
             self.run = False  # recursion limit
         return next_url
 
