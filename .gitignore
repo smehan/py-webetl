@@ -90,6 +90,9 @@ crashlytics-build.properties
 
 ## My stuff:
 
+# OS X
+.DS_Store
+
 # ignore the actual vagrant
 .vagrant/
 
