@@ -1,5 +1,5 @@
 """
-https://www.google.com/maps/search/laundromats+in+ALBERTSON,+NY/@40.7192859,-73.749286,13z/data=!3m1!4b1
+Class that will make a search for nearby places of a particular type given a lat, long
 """
 
 import yaml
@@ -8,7 +8,6 @@ import time
 from gmaps import Geocoding, client
 from urllib.request import Request
 from urllib.request import urlopen
-import pprint
 
 
 class Gmap():
@@ -32,7 +31,7 @@ class Gmap():
         r = self._search_google(coords[0], coords[1], rad)
         for place in r['results']:
             resultsList.append(place)
-        if r['next_page_token']:
+        if 'next_page_token' in r:
             time.sleep(1)
             while True:
                 npt = r['next_page_token']
@@ -43,7 +42,7 @@ class Gmap():
                     r['next_page_token']
                 except:
                     break
-        print("Google maps searched and results returned.")
+        print("Google maps searched and results returned for %s, %s." % (coords[0], coords[1]))
         return resultsList
 
     def _search_google(self, lat, long, r, npt=None):
@@ -80,4 +79,4 @@ class Gmap():
 
 if __name__ == '__main__':
     extract = Gmap()
-    extract.oidhirp()
+    r = extract.fetch_results()
