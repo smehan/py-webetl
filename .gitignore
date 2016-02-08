@@ -102,5 +102,5 @@ data/
 # ignore site-specific configuration file
 config.yaml
 az_config.yaml
-google_config.yaml
+src/Gmap/google_config.yaml
 
