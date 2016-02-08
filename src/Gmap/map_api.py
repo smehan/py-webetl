@@ -29,6 +29,9 @@ class Gmap():
         """
         resultsList = []
         r = self._search_google(coords[0], coords[1], rad)
+        if r['status'] == 'OVER_QUERY_LIMIT':
+            print("Google quota exceeded. Cool down!")
+            return []
         for place in r['results']:
             resultsList.append(place)
         if 'next_page_token' in r:
