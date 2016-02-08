@@ -16,46 +16,41 @@ class Gmap():
 
     def __init__(self,):
         """Constructor for Gmap"""
-        with open("google_config.yaml", 'r') as f:
+        with open("Gmap/google_config.yaml", 'r') as f:  #  TODO: needs to look in same dir
             settings = yaml.load(f)
         self.api_key = settings['GOOGLE_API_KEY']
 
-    def oidhirp(self):
+    def fetch_results(self, coords, rad=1000):
+        """
+        Takes a coordinate tuple and a radius and fetches a result set.
+        Predetermined url at this point.
+        :param coords: a tuple of lat and long for this search
+        :param rad: radius of search
+        :return: list of json results
+        """
         resultsList = []
-        count = 0
-        lat = 40.7236
-        long = -73.7058
-        radius = 5000
-        url = self._build_url(lat, long, radius=radius)
-        req = Request(url)
-        r = json.loads(urlopen(req).read().decode('utf-8'))
+        r = self._search_google(coords[0], coords[1], rad)
         for place in r['results']:
             resultsList.append(place)
-            count += 1
         if r['next_page_token']:
-            time.sleep(2)
+            time.sleep(1)
             while True:
                 npt = r['next_page_token']
-                url = self._build_url(lat, long, radius=radius, npt=npt)
-                req = Request(url)
-                r = json.loads(urlopen(req).read().decode('utf-8'))
-
+                r = self._search_google(coords[0], coords[1], rad, npt)
                 for place in r['results']:
                     resultsList.append(place)
-                    count += 1
-
                 try:
                     r['next_page_token']
                 except:
                     break
-        pprint.pprint(resultsList)
-        with open("../data/output/sample-search.json", 'w') as outf:
-            json.dump(resultsList,outf)
-        pprint.pprint(r)
-        print(count)
+        print("Google maps searched and results returned.")
+        return resultsList
 
-    def _search_google(self):
-        1+1
+    def _search_google(self, lat, long, r, npt=None):
+        url = self._build_url(lat, long, radius=r, npt=npt)
+        req = Request(url)
+        r = json.loads(urlopen(req).read().decode('utf-8'))
+        return r
 
     def _build_url(self, lat, long, radius=5000, npt=None):
         """
