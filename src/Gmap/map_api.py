@@ -35,7 +35,7 @@ class Gmap():
         for place in r['results']:
             resultsList.append(place)
         if 'next_page_token' in r:
-            time.sleep(1)
+            time.sleep(2)
             while True:
                 npt = r['next_page_token']
                 r = self._search_google(coords[0], coords[1], rad, npt)
@@ -70,6 +70,7 @@ class Gmap():
         url += '&radius='
         url += str(radius)
         url += '&types=laundry'
+        url += '&keyword=laundromat'  # keyword: "(cinema) OR (theater)" unclear if it works
         url += '&key='
         url += self.api_key
         if npt is not None:

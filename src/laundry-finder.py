@@ -7,11 +7,12 @@ from Gmap import map_api as goog
 
 def get_all_coords():
     data = {}
-    with open("../data/input/n-2.txt") as infh:
+    with open("../data/input/nassau.txt") as infh:
         for line in infh:
             parts = line.split("\t")
             c = (parts[9], parts[10].strip())
-            data[parts[1]] = c
+            if c not in data.values():
+                data[parts[1]] = c
         return(data)
 
 def add_places(g, d, zip):
@@ -40,12 +41,18 @@ def output_data(data, path, json=False):
             outwriter.writeheader()
     else:
         with open(path, 'a') as fh:
-            outwriter = csv.DictWriter(fh, names, delimiter='\t')
-            outwriter.writerows(data)
+            outwriter = csv.writer(fh, delimiter='\t')
+            for name in data:
+                # if 'cleaner' in name.lower():
+                #     continue
+                # if 'carpet' in name.lower():
+                #     continue
+                outwriter.writerow([name, data[name][0]['address'], data[name][1]['zip'], data[name][2]['plid'], data[name][3]['id']])
+
 
 
 if __name__ == '__main__':
-    path = "../data/output/sample-search.json"
+    path = "../data/output/search-20160209.csv"
     extract = goog.Gmap()  # build a gmap object to handle interface with google maps api.
     coord_dict = get_all_coords()
     places = {}
