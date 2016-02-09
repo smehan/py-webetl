@@ -27,7 +27,7 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
-        self.outfile = "../data/toys_20160203.csv"
+        self.outfile = "../data/toys_20160206.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'az_sales_rank', 'az_match', 'url', 'img', 'az_url')
         self.url_cats = settings['toys']
         self.site_url = settings['site_url']
@@ -35,6 +35,13 @@ class WalmartScraper(object):
         self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
         self.pc = 0
+
+    def destroy(self):
+        """
+        method to destroy all objects and clean up.
+        :return:
+        """
+        self.driver.quit()
 
     def scrape(self, pc=None, change_url=None):
         """
@@ -58,7 +65,6 @@ class WalmartScraper(object):
             print("Site %s finished" % self.site_url)
         else:
             print("Section %s finished" % change_url)
-        self.driver.quit()
 
     def init_output(self):
         if not os.path.exists(self.outfile):
@@ -164,3 +170,4 @@ if __name__ == '__main__':
     scraper.init_output()
     for cat in scraper.url_cats:
         scraper.scrape(0, cat)
+    scraper.destroy()
