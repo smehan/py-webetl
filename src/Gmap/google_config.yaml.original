@@ -1,0 +1,2 @@
+GOOGLE_API_KEY : 'YOUR KEY HERE'  #  PS-map-etl-key1
+GOOGLE_SEARCH_METHOD : 'radar'  # <radar, nearby>

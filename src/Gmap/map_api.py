@@ -18,6 +18,7 @@ class Gmap():
         with open("Gmap/google_config.yaml", 'r') as f:  #  TODO: needs to look in same dir
             settings = yaml.load(f)
         self.api_key = settings['GOOGLE_API_KEY']
+        self.search_type = settings['GOOGLE_SEARCH_METHOD']
 
     def fetch_results(self, coords, rad=1000):
         """
@@ -46,7 +47,7 @@ class Gmap():
                 except:
                     break
         print("Google maps searched and results returned for %s, %s." % (coords[0], coords[1]))
-        return resultsList
+        return resultsList, self.search_type
 
     def _search_google(self, lat, long, r, npt=None):
         url = self._build_url(lat, long, radius=r, npt=npt)
@@ -60,10 +61,18 @@ class Gmap():
         :param lat:
         :param long:
         :param radius:
-        :param npt:
+        :param npt: the next page token returned from google, if there is one.
         :return:
         """
-        url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location='
+        url = 'https://maps.googleapis.com/maps/api/place/'
+        if self.search_type == 'nearby':
+            url += 'nearbysearch/'
+        elif self.search_type == 'radar':
+            url += 'radarsearch/'
+        else:
+            print ("No search type specified in google config!")
+            exit()
+        url += 'json?location='
         url += str(lat)
         url += ','
         url += str(long)

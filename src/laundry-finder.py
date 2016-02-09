@@ -30,8 +30,10 @@ def clean_places(places):
         1+1
 
 
-def output_data(data, path, json=False):
+def output_data(data, path, json=False, method='radar'):
     names = ('name', 'address', 'zip', 'plid', 'id')
+    if method == 'radar':  # TODO: slim support for radar, so needs to dump json
+        json = True
     if json is True:
         with open(path, 'w') as fh:
             json.dump(data, fh)
@@ -52,15 +54,16 @@ def output_data(data, path, json=False):
 
 
 if __name__ == '__main__':
-    path = "../data/output/search-20160209.csv"
+    path = "../data/output/search-20160209-3.json"
     extract = goog.Gmap()  # build a gmap object to handle interface with google maps api.
     coord_dict = get_all_coords()
     places = {}
     for k in coord_dict:
         result = []
         coords = coord_dict[k]
-        result = extract.fetch_results(coords, rad=5000)
-        places = add_places(result, places, k)
+        result, search_type = extract.fetch_results(coords, rad=5000)
+        if search_type == 'nearby':
+            places = add_places(result, places, k)
     # pprint.pprint(places)
-    output_data(places, path)
+    output_data(places, path, search_type)
     print("********************Job Finished************************************")
