@@ -117,11 +117,11 @@ def build_search_url(stub, cat=None, additional_url=None):
     elsewhere. Return example is
     "http://www.example.com/search/browse//section1/sector4/get_results?param1=word&page="
     """
-    if cat is None:
-        search_url = stub
-    else:
-        search_url = stub
+    search_url = stub
+    if cat is not None:
         search_url += cat
+    if additional_url is not None:
+        search_url += additional_url
     return(search_url)
 
 def strip_final_slash(url):
