@@ -102,5 +102,6 @@ data/
 # ignore site-specific configuration file
 config.yaml
 az_config.yaml
-src/Gmap/google_config.yaml
+/src/Gmap/google_config.yaml
+/src/Pydb/mysql_config.yaml
 
