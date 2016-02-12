@@ -99,7 +99,8 @@ class BBBScraper(object):
                 imitate_user(1)
                 entry = {}
                 entry = self.get_detail(e.a.attrs['href'], entry)
-                self.process_output(entry)
+                if entry:
+                    self.process_output(entry)
 
     def get_detail(self, url, e):
         """
