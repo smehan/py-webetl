@@ -38,13 +38,19 @@
     become_user: yes
     with_items:
       - openjdk-7-jre-headless
+  # the following are for installing flyway if needed
+  - stat: path=/vagrant/flyway-3.2.1/flyway
+    register: flyway_installed
   - name: install unzip
     apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
     become_user: yes
     with_items:
       - unzip
+    when: flyway_installed.stat.exists == False
   - name: fetch flyway-commandline-3.2.1
     unarchive: src=http://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/3.2.1/flyway-commandline-3.2.1.zip dest=/vagrant copy=no
     # get_url: url={{ opencv.url }} dest={{ common.project_dir }}/{{ opencv.file }}
+    when: flyway_installed.stat.exists == False
   - name: create a local sql directory to hold git tracked migrations
     file: path=/vagrant/sql state=directory
+    when: flyway_installed.stat.exists == False
