@@ -48,11 +48,11 @@ class Mysql():
         except:
             pass
 
-    def destroy(self):
+    def exit(self):
         self.con.close()
 
 if __name__ == '__main__':
     testdb = Mysql()
     testdb.insert(['v1', 'v2'])
     testdb.read()
-    testdb.destroy()
+    testdb.exit()
