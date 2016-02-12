@@ -99,6 +99,9 @@ crashlytics-build.properties
 # ignore data directory
 data/
 
+# ignore all the flyway non-sql infrastructure
+/flyway-3.2.1/
+
 # ignore site-specific configuration file
 config.yaml
 az_config.yaml
