@@ -1,0 +1,30 @@
+## output csv file
+output : "../data/bbb_20160210.csv"
+
+# site_url : 'http://www.bbb.org/chicago/accredited-business-directory/auto-repair-maintenance'
+
+# to build these, one combines locator information from http://www.bbb.org/bbb-locator/ with catgories
+# from http://www.bbb.org/chicago/accredited-business-directory/auto-repair-maintenance
+
+site_url : 'http://www.bbb.org/'
+
+change_url :
+ - 'chicago/'
+ - 'central-illinois/'
+ - 'iowa/'
+ - 'rockford/'
+ - 'evansville/'
+ - 'stlouis/'
+ - 'detroit/'
+ - 'western-michigan/'
+ - 'toledo/'
+ - 'wisconsin/'
+- 'northernindiana/'
+ - 'indy/'
+ - 'louisville/'
+ - 'cincinnati/'
+
+page_url : 'accredited-business-directory/auto-repair-service/'
+
+
+
