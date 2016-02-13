@@ -168,7 +168,7 @@ class BBBScraper(object):
                 data = page.find("span", {"itemprop": "addressLocality"}).get_text().strip()
             except:
                 pass
-        elif page.find("span", {"class": "business-address"}).span.next_sibling.next_sibling.get_text().strip():
+        elif page.find("span", {"class": "business-address"}).span.next_sibling.next_sibling:
             try:
                 data = page.find("span", {"class": "business-address"}).span.next_sibling.next_sibling.get_text().strip()
             except:
