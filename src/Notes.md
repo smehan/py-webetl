@@ -8,3 +8,12 @@
 
 ## map of county as well as lat/long [http://www.travelmath.com/county/Nassau+County,+NY](http://www.travelmath.com/county/Nassau+County,+NY)
 
+## Census data: 
+* Geographical areas covered by ACS https://www.census.gov/programs-surveys/acs/geography-acs/areas-published/reference-maps/new-york.html
+Nassau County, New York	05000US36059
+
+data tables for ACS http://www.census.gov/acs/www/data/data-tables-and-tools/data-profiles/2014/
+
+factfinder http://factfinder.census.gov/faces/nav/jsf/pages/searchresults.xhtml?refresh=t#
+
+* Census 2010 zip to census tracts, etc. [http://www.junjaytan.com/blog/income-by-zip-code-census-data/](http://www.junjaytan.com/blog/income-by-zip-code-census-data/)
