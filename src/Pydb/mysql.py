@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Class for creating a db object that connects to a defined mysql instance and
 permits various cursor executions. Uses PyMysql as the DBI driver. This is not the
@@ -7,13 +8,15 @@ pip PyMysql3 which is an older version of said.
 import pymysql.cursors
 import yaml
 
+
 class Mysql():
-    def __init__(self):
+    def __init__(self, path):
         """
+        :param path: the path to the config file for this particular mysql db connection
         :return: an initiated db object connected to a schema in a mysql instance
         """
 
-        with open("mysql_config.yaml", 'r') as fh:
+        with open(path, 'r') as fh:
             settings = yaml.load(fh)
 
         self.db_host = settings['DB_HOST']
@@ -52,7 +55,7 @@ class Mysql():
         self.con.close()
 
 if __name__ == '__main__':
-    testdb = Mysql()
+    testdb = Mysql("mysql_config.yaml")
     testdb.insert(['v1', 'v2'])
     testdb.read()
     testdb.exit()
