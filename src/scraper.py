@@ -188,5 +188,5 @@ if __name__ == '__main__':
     scraper = WalmartScraper()
     scraper.init_output()
     for cat in scraper.url_cats:
-        scraper.scrape(4, cat)
+        scraper.scrape(0, cat)
     scraper.destroy()
