@@ -109,6 +109,12 @@ class WalmartScraper(object):
             net = (az_price - (price*1.08 + az_price*0.3 + weight*self.shipping_rate))
         except Exception as e:
             net = 0.0
+        try:
+            net = round(net,2)
+        except:
+            self.logger.error("Bad net value for %s - price:%s, az_price:%s, weight:%s" %
+                              (data['name'], data['price'], data['az_price'], data['weight']))
+            net = 0.0
         return round(net, 2)
 
     def get_roi(self, data):
