@@ -130,7 +130,7 @@ class WalmartScraper(object):
             elif e.name == "script":
                 continue
             else:
-                imitate_user(1)
+                imitate_user(0.05)
                 entry = {}
                 try:
                     entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
