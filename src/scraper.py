@@ -43,7 +43,7 @@ class WalmartScraper(object):
         self.page_url = settings['page_url']
         self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
-        self.pc = 0
+        self.pc = 1
 
     def destroy(self):
         """
@@ -110,12 +110,12 @@ class WalmartScraper(object):
         except Exception as e:
             net = 0.0
         try:
-            net = round(net,2)
+            net = round(net, 2)
         except:
             self.logger.error("Bad net value for %s - price:%s, az_price:%s, weight:%s" %
                               (data['name'], data['price'], data['az_price'], data['weight']))
             net = 0.0
-        return round(net, 2)
+        return net
 
     def get_roi(self, data):
         net = self.get_dollar_amount(data['net'])
