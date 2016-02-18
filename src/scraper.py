@@ -11,6 +11,8 @@ from AZ import AZ
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 import csv
 import os
+import logging
+import logging.config
 
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
@@ -19,8 +21,29 @@ dcap["phantomjs.page.settings.userAgent"] = (
     "(KHTML, like Gecko) Chrome/15.0.87"
 )
 
+
+def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='LOG_CFG'):
+    """Setup logging configuration
+
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = yaml.load(f.read())
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level)
+
+
 class WalmartScraper(object):
     def __init__(self):
+        #self.logger = logger or logging.getLogger(__name__)
+        setup_logging()
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Job started and logging enabled")
 
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.yaml"), "r") as fh:
             settings = yaml.load(fh)
@@ -59,13 +82,13 @@ class WalmartScraper(object):
             try:
                 page = self.get_page(url)
             except Exception as e:
-                print("Error with %s and skipped" % url)
+                self.logger.error("Error with %s and skipped" % url)
                 continue
             self.get_list(page)
         if change_url is None:
-            print("Site %s finished" % self.site_url)
+            self.logger.info("Site %s finished" % self.site_url)
         else:
-            print("Section %s finished" % change_url)
+            self.logger.info("Section %s finished" % change_url)
 
     def init_output(self):
         if not os.path.exists(self.outfile):
@@ -146,7 +169,7 @@ class WalmartScraper(object):
 
     def get_page(self, url):
         try:
-            print("Getting %s" % url)
+            self.logger.info("Getting %s" % url)
             self.driver.get(url)
             # self.driver.get_cookies()
         except ValueError as e:
@@ -156,12 +179,12 @@ class WalmartScraper(object):
             except:
                 raise
         except Exception as e:
-            print(url, e)
+            self.logger.error(url, e)
         # try:
         #     wait = WebDriverWait(self.driver, 3)
         #     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div")))
         # except Exception as e:
-        #     print("WebDriverWait error")
+        #     self.logger.error("WebDriverWait error")
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
 
