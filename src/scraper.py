@@ -125,6 +125,9 @@ class WalmartScraper(object):
 
     def get_list(self, page):
         entries = page.find("ul", {"class": "tile-list-grid"})
+        if entries is None:
+            self.run = False
+            return
         for e in entries:
             if len(e) == 1:
                 continue
@@ -185,5 +188,5 @@ if __name__ == '__main__':
     scraper = WalmartScraper()
     scraper.init_output()
     for cat in scraper.url_cats:
-        scraper.scrape(0, cat)
+        scraper.scrape(4, cat)
     scraper.destroy()
