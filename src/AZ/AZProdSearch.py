@@ -10,8 +10,6 @@ import os, sys
 class AZ(object):
     def __init__(self):
 
-        wd = os.path.dirname(os.path.abspath(__file__))
-
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "az_config.yaml"), "r") as fh:
             settings = yaml.load(fh)
 

@@ -27,7 +27,7 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
-        self.outfile = "../data/toys_20160206.csv"
+        self.outfile = "../data/toys_test.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight', 'az_sales_rank', 'az_match', 'url', 'img', 'az_url')
         self.url_cats = settings['toys']
         self.site_url = settings['site_url']
@@ -54,7 +54,7 @@ class WalmartScraper(object):
         if pc is not None:
             self.pc = pc
         while self.run is True:
-            url = self.next_page_url(build_search_url(self.site_url, change_url, self.page_url))
+            url = self.next_page_url(build_search_url(self.site_url, change_url))
             try:
                 page = self.get_page(url)
             except Exception as e:
@@ -138,7 +138,7 @@ class WalmartScraper(object):
         next_url = url
         if self.page_url:
             next_url += self.page_url
-        next_url += str(self.pc)
+            next_url += str(self.pc)
         if self.pc == 12:
             self.run = False  # recursion limit
         return next_url
