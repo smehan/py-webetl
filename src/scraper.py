@@ -150,7 +150,7 @@ class WalmartScraper(object):
 
     def next_page_url(self, url):
         self.pc += 1
-        imitate_user(1)
+        imitate_user(0.5)
         next_url = url
         if self.page_url:
             next_url += self.page_url
@@ -165,7 +165,7 @@ class WalmartScraper(object):
             self.driver.get(url)
             # self.driver.get_cookies()
         except ValueError as e:
-            imitate_user(5)
+            imitate_user(2)
             try:
                 self.driver.get(url)
             except:
