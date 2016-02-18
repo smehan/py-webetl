@@ -3,10 +3,11 @@
 #  -*- coding: utf-8 -*-
 
 import re
+import yaml
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from bs4 import BeautifulSoup
-from AZProdSearch import *
+from AZ import AZ
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 import csv
 import os
@@ -21,8 +22,8 @@ dcap["phantomjs.page.settings.userAgent"] = (
 class WalmartScraper(object):
     def __init__(self):
 
-        with open("config.yaml", "r") as f:
-            settings = yaml.load(f)
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.yaml"), "r") as fh:
+            settings = yaml.load(fh)
 
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
