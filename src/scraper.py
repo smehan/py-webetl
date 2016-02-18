@@ -43,7 +43,7 @@ class WalmartScraper(object):
         self.page_url = settings['page_url']
         self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
-        self.pc = 1
+        self.pc = 0
 
     def destroy(self):
         """
@@ -92,7 +92,8 @@ class WalmartScraper(object):
 
     def get_dollar_amount(self, f):
         if isinstance(f, str):
-            return round(float(re.match(r'\$(\d+[.,]\d\d)', f.strip()).group(1)), 2)
+            f = f.replace(",", "", 1)
+            return round(float(re.match(r'\$?(\d+[.]\d\d)', f.strip()).group(1)), 2)
         else:
             return f
 
@@ -184,5 +185,5 @@ if __name__ == '__main__':
     scraper = WalmartScraper()
     scraper.init_output()
     for cat in scraper.url_cats:
-        scraper.scrape(0, cat)
+        scraper.scrape(1, cat)
     scraper.destroy()
