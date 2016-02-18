@@ -3,3 +3,4 @@
 access_key: <your access key>
 secret_key: <your secret key>
 associate_tag: <your associate id>
+default_weight: <your default weight, a minimum weight to use for missing values>

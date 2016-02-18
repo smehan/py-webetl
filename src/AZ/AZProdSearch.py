@@ -4,20 +4,23 @@
 
 from amazon.api import AmazonAPI
 import yaml
+import os, sys
 
 
 class AZ(object):
     def __init__(self):
 
-        with open("az_config.yaml", "r") as f:
-            settings = yaml.load(f)
+        wd = os.path.dirname(os.path.abspath(__file__))
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "az_config.yaml"), "r") as fh:
+            settings = yaml.load(fh)
 
         self.access_key = settings['access_key_id']
         self.secret_key = settings['secret_key_id']
         self.associate_tag = settings['associate_tag']
         self.az_price = None
         self.az_asin = None
-        self.az_weight = None
+        self.az_weight = settings['default_weight']
         self.az_sales_rank = None
         self.az_url = None
         self.az_match = None
@@ -40,7 +43,7 @@ class AZ(object):
             if self.az_price != 0:
                 self.az_match = 'K'
         if self.az_price == 0:  # we didn't find any match so clean remaining attrs
-            (self.az_weight, self.az_sales_rank, self.az_match, self.az_url) = (0, 0, 'N', '')
+            (self.az_sales_rank, self.az_match, self.az_url) = (0, 'N', '')
         self._get_attrs()
         return self.az_price, self.az_weight, self.az_sales_rank, self.az_match, self.az_url
 
@@ -89,7 +92,7 @@ class AZ(object):
             if r is None:
                 r = 0
             if w is None:
-                w = 0
+                w = self.az_weight  # this should not be in hundreth-pounds
             else:
                 w = float(w)*0.01  # its coming from amazon in hundreth-pounds seemingly
         else:  # there was no product found.
@@ -105,9 +108,9 @@ class AZ(object):
                 p = self.amazon.lookup(ItemId=self.az_asin)
                 w = p.get_attribute('ItemDimensions.Weight')
             except:
-                w = None
+                pass
             if w is None:
-                w = 0
+                w = self.az_weight
             else:
                 w = float(w)*0.01  # its coming from amazon in hundreth-pounds seemingly
         else:
