@@ -43,7 +43,7 @@ class AZ(object):
         if self.az_price == 0:  # we didn't find any match so clean remaining attrs
             (self.az_sales_rank, self.az_match, self.az_url) = (0, 'N', '')
         self._get_attrs()
-        return self.az_price, self.az_weight, self.az_sales_rank, self.az_match, self.az_url
+        return self.az_price, self.az_weight, self.az_sales_rank, self.az_match, self.az_url, self.az_asin
 
     def _find_by_title(self, title, cat):
         lowest = 0.0
