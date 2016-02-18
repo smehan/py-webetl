@@ -92,7 +92,7 @@ class WalmartScraper(object):
 
     def get_dollar_amount(self, f):
         if isinstance(f, str):
-            return round(float(re.match(r'\$(\d+.\d\d)', f.strip()).group(1)), 2)
+            return round(float(re.match(r'\$(\d+[.,]\d\d)', f.strip()).group(1)), 2)
         else:
             return f
 
