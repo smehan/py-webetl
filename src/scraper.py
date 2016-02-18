@@ -9,6 +9,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from bs4 import BeautifulSoup
 from AZ import AZ
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
+from loggerUtils import init_logging
 import csv
 import os
 import logging
@@ -22,26 +23,9 @@ dcap["phantomjs.page.settings.userAgent"] = (
 )
 
 
-def setup_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='LOG_CFG'):
-    """Setup logging configuration
-
-    """
-    path = default_path
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-    if os.path.exists(path):
-        with open(path, 'rt') as f:
-            config = yaml.load(f.read())
-        logging.config.dictConfig(config)
-    else:
-        logging.basicConfig(level=default_level)
-
-
 class WalmartScraper(object):
     def __init__(self):
-        #self.logger = logger or logging.getLogger(__name__)
-        setup_logging()
+        init_logging()
         self.logger = logging.getLogger(__name__)
         self.logger.info("Job started and logging enabled")
 
