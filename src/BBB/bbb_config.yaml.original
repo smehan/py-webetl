@@ -1,5 +1,6 @@
+---
 ## output csv file
-output : "../data/bbb_20160210.csv"
+output : "../../data/bbb_20160210.csv"
 
 # site_url : 'http://www.bbb.org/chicago/accredited-business-directory/auto-repair-maintenance'
 
