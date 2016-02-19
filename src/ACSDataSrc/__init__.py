@@ -1,1 +1,1 @@
- from populate import *
+from populate import Populate

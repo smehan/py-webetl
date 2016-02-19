@@ -51,8 +51,6 @@ def output_data(data, path, json=False, method='radar'):
                 #     continue
                 outwriter.writerow([name, data[name][0]['address'], data[name][1]['zip'], data[name][2]['plid'], data[name][3]['id']])
 
-
-
 if __name__ == '__main__':
     path = "../data/output/search-20160209-3.json"
     extract = goog.Gmap()  # build a gmap object to handle interface with google maps api.
