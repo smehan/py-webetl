@@ -1,0 +1,55 @@
+- hosts: all # was mysql
+  vars:
+    mysql_root_password: password
+  tasks:
+  - name: Install MySQL
+    apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
+    become: yes
+    with_items:
+    - python-mysqldb
+    - mysql-server
+  #- name: copy cnf
+  #  copy: src=.my.cnf dest=~/.my.cnf owner=ubuntu mode=0644
+  #  sudo: yes
+  - name: Start the MySQL service
+    become: yes
+    service:
+      name: mysql
+      state: started
+      enabled: true
+  - name: update mysql root password for all root accounts
+    become_user: yes
+    mysql_user:
+      name: root
+      host: "{{ item }}"
+      password: "{{ mysql_root_password }}"
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      check_implicit_admin: yes
+      priv: "*.*:ALL,GRANT"
+    with_items:
+      - "{{ ansible_hostname }}"
+      - 127.0.0.1
+      - ::1
+      - localhost
+  - name: install java-7-headless-jdk
+    apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
+    become: yes
+    with_items:
+      - openjdk-7-jre-headless
+  # the following are for installing flyway if needed
+  - stat: path=/vagrant/flyway-3.2.1/flyway
+    register: flyway_installed
+  - name: install unzip
+    apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
+    become: yes
+    with_items:
+      - unzip
+    when: flyway_installed.stat.exists == False
+  - name: fetch flyway-commandline-3.2.1
+    unarchive: src=http://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/3.2.1/flyway-commandline-3.2.1.zip dest=/vagrant copy=no
+    # get_url: url={{ opencv.url }} dest={{ common.project_dir }}/{{ opencv.file }}
+    when: flyway_installed.stat.exists == False
+  - name: create a local sql directory to hold git tracked migrations
+    file: path=/vagrant/sql state=directory
+    when: flyway_installed.stat.exists == False

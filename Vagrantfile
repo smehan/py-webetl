@@ -75,11 +75,18 @@ Vagrant.configure(2) do |config|
      sudo apt-get update
   #   sudo apt-get install -y apache2
   # for ansible install from new ppa
-    sudo apt-get install software-properties-common
+    sudo apt-get install -y software-properties-common
     sudo apt-add-repository ppa:ansible/ansible
     sudo apt-get update
-    sudo apt-get install ansible
+    sudo apt-get install -y ansible
    SHELL
+
+  #
+  # Run Ansible from the Vagrant Host
+  #
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "ansible/mysql.yml"
+  end
 end
 
 
