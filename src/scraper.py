@@ -50,6 +50,7 @@ class WalmartScraper(object):
         method to destroy all objects and clean up.
         :return:
         """
+        self.driver.service.process.send_signal(signal.SIGTERM)
         self.driver.quit()
 
     def scrape(self, pc=None, change_url=None):
@@ -144,7 +145,10 @@ class WalmartScraper(object):
                     entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
                 else:
                     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
-                entry['price'] = e.find("span", {"class":"price-display"}).get_text()
+                try:
+                    entry['price'] = e.find("span", {"class":"price-display"}).get_text()
+                except:
+                    continue
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
                 entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['name'], 'Toys')
                 entry['net'] = self.get_net(entry)
