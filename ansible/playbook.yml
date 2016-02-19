@@ -5,7 +5,7 @@
   tasks:
   - name: Install MySQL
     apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
-    become_user: yes
+    become: yes
     with_items:
     - python-mysqldb
     - mysql-server
@@ -13,7 +13,7 @@
   #  copy: src=.my.cnf dest=~/.my.cnf owner=ubuntu mode=0644
   #  sudo: yes
   - name: Start the MySQL service
-    become_user: yes
+    become: yes
     service:
       name: mysql
       state: started
@@ -35,7 +35,7 @@
       - localhost
   - name: install java-7-headless-jdk
     apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
-    become_user: yes
+    become: yes
     with_items:
       - openjdk-7-jre-headless
   # the following are for installing flyway if needed
@@ -43,7 +43,7 @@
     register: flyway_installed
   - name: install unzip
     apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
-    become_user: yes
+    become: yes
     with_items:
       - unzip
     when: flyway_installed.stat.exists == False
