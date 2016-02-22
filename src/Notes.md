@@ -17,3 +17,6 @@ data tables for ACS http://www.census.gov/acs/www/data/data-tables-and-tools/dat
 factfinder http://factfinder.census.gov/faces/nav/jsf/pages/searchresults.xhtml?refresh=t#
 
 * Census 2010 zip to census tracts, etc. [http://www.junjaytan.com/blog/income-by-zip-code-census-data/](http://www.junjaytan.com/blog/income-by-zip-code-census-data/)
+
+* Crosswalk file for zip to census tract (2010 onwards). https://www.huduser.gov/portal/datasets/usps_crosswalk.html
+
