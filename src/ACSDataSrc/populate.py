@@ -81,15 +81,18 @@ class Populate():
         with open("data/US/US.txt") as fh:
             reader = csv.reader(fh, delimiter='\t')
             for r in reader:
-                geo[r[1]] = [{'city': r[2]}, {'county': r[5]}, {'lat': r[9]}, {'lon': r[10]}]
+                geo[r[1]] = [{'city': r[2]}, {'county': r[5]}, {'state': r[3]}, {'lat': r[9]}, {'lon': r[10]}]
         with self.acsdb.con.cursor() as cursor:
             for g in geo:
-                get_zip_id_sql = "SELECT `pk_id` FROM `zip` WHERE `zipcode`=%s"
-                cursor.execute(get_zip_id_sql, (g))
-                zip_id = cursor.fetchone()
-                update_sql = "UPDATE `zip` SET `city`=%s, `county`=%s, `lat`=%s, `lon`=%s WHERE `zipcode`=%s"
+                update_sql = "INSERT INTO `zip` (`city`, `county`, `state`, `lat`, `lon`, `zipcode`) " \
+                             "VALUES (%s, %s, %s, %s, %s, %s)"
                 try:
-                    cursor.execute(update_sql, (geo[g][0]['city'], geo[g][1]['county'], geo[g][2]['lat'], geo[g][3]['lon'], g))
+                    cursor.execute(update_sql, (geo[g][0]['city'],
+                                                geo[g][1]['county'],
+                                                geo[g][2]['state'],
+                                                geo[g][3]['lat'],
+                                                geo[g][4]['lon'],
+                                                g))
                 except:
                     pass
                 self.acsdb.con.commit()
@@ -216,8 +219,8 @@ class Populate():
 if __name__ == '__main__':
     pop = Populate()
     #pop.load_census_2010_zip_to_tracts()
-    pop.load_tracts()
+    #pop.load_tracts()
     #pop.load_S2503()
-    #pop.load_geo_details()
+    pop.load_geo_details()
 
 
