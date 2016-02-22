@@ -1,6 +1,6 @@
 create table zip (
     pk_id int not null AUTO_INCREMENT,
-    zipcode int not null,
+    zipcode varchar(5) not null,
     lat numeric(7,4),
     lon numeric(7,4),
     city varchar(100),
