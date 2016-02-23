@@ -12,9 +12,12 @@ class Populate():
     loads: US geo details for all states, counties, cities with zip, lat/long.
     """
 
-    def __init__(self,):
+    def __init__(self):
         """Constructor for Populate"""
         self.acsdb = Mysql("../Pydb/mysql_config.yaml")
+
+    def destroy(self):
+        self.acsdb.exit()
 
     def load_tracts(self):
         tracts = {}  # {track_id : track_name}
@@ -30,7 +33,7 @@ class Populate():
             for t in tracts:
                 update_sql = "INSERT INTO `census_tract_2010` (`track_id`, `track_name`) VALUES (%s, %s)"
                 try:
-                    cursor.execute(update_sql, (int(t), tracts[t]))
+                    cursor.execute(update_sql, (t, tracts[t]))
                 except:
                     pass
                 self.acsdb.con.commit()
@@ -46,35 +49,44 @@ class Populate():
         name = ".".join((base.group(1), base.group(2)))
         return name
 
-   #TRACT,ZIP,RES_RATIO,BUS_RATIO,OTH_RATIO,TOT_RATIO
-    def load_tract_zip_crosswalk(self):
-        pass
-
-    def load_census_2010_zip_to_tracts(self):
-        zips = []
-        tract = []  # "ID","state","zipcode","census_tract_id","census_tract_name"
-        with open("data/census_2010_zipcodes_to_tracts.csv") as fh:
+    def load_zip_tract_crosswalk(self):
+        data = []
+        with open("data/TRACT_ZIP_122015.csv") as fh:
             reader = csv.reader(fh)
             index = 0
             for r in reader:
-                if index == 0:  # skip header
-                    index += 1
-                    continue
-                zips.append([r[2], r[1]])  # zip, state
-                tract.append([r[3], r[4], r[2]])  # id, name, zip
                 index += 1
+                if index < 2:  # skip header
+                    continue
+                data.append([r[0], r[1], r[2], r[3], r[4], r[5]])  # TRACT,ZIP,RES_RATIO,BUS_RATIO,OTH_RATIO,TOT_RATIO
         with self.acsdb.con.cursor() as cursor:
-            for z in zips:
-                sql = "INSERT INTO `zip` (`zipcode`, `state`) VALUES (%s, %s)"
-                cursor.execute(sql, (z[0], z[1]))
-            self.acsdb.con.commit()
-            for t in tract:
+            for r in data:
                 zip_id_sql = "SELECT `pk_id` FROM `zip` WHERE `zipcode`=%s"
-                cursor.execute(zip_id_sql, (t[2],))
-                zip_id = cursor.fetchone()
-                sql = "INSERT INTO `census_tract_2010` (`track_id`,`track_name`,`zip_id`) VALUES (%s, %s, %s)"
-                cursor.execute(sql, (t[0], t[1], zip_id['pk_id']))
-            self.acsdb.con.commit()
+                cursor.execute(zip_id_sql, (r[1]))
+                zip_pk_id = cursor.fetchone()
+                if zip_pk_id is None:
+                    print(r[1])
+                track_id_sql = "SELECT `pk_id` FROM `census_tract_2010` WHERE `track_id`=%s"
+                cursor.execute(track_id_sql, (r[0]))
+                track_pk_id = cursor.fetchone()
+                if track_pk_id is None:
+                    print(r[0])
+                    continue
+                insert_sql = "INSERT INTO `zip_tract_cw` " \
+                             "(`track_pk_id`, " \
+                             "`zip_pk_id`, " \
+                             "`res_ratio`, " \
+                             "`bus_ratio`, " \
+                             "`oth_ratio`, " \
+                             "`tot_ratio`) " \
+                             "VALUES (%s, %s, %s, %s, %s, %s)"
+                try:
+                    cursor.execute(insert_sql, (track_pk_id['pk_id'], zip_pk_id['pk_id'], r[2], r[3], r[4], r[5]))
+                    self.acsdb.con.commit()
+                except Exception as e:
+                    print(r[0], e)
+
+
 
     def load_geo_details(self):
         geo = {}
@@ -210,9 +222,10 @@ class Populate():
 
 if __name__ == '__main__':
     pop = Populate()
-    #pop.load_census_2010_zip_to_tracts()
     #pop.load_tracts()
-    pop.load_S2503()
+    #pop.load_S2503()
     #pop.load_geo_details()
+    pop.load_zip_tract_crosswalk()
+    pop.destroy()
 
 

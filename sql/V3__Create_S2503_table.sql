@@ -41,5 +41,5 @@ create table S2503_ACS (
     HC03_VC14 float not null,
     track_pk_id int,
     PRIMARY KEY (pk_id),
-    FOREIGN KEY (track_pk_id) REFERENCES census_tract_2010(pk_id)
+    FOREIGN KEY (track_pk_id) REFERENCES census_tract_2010(pk_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
