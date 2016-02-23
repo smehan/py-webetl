@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from Pydb import *
+from Pydb import Mysql
 import os
 import csv
 import re
@@ -14,7 +14,7 @@ class Populate():
 
     def __init__(self):
         """Constructor for Populate"""
-        self.acsdb = Mysql("../Pydb/mysql_config.yaml")
+        self.acsdb = Mysql("../Pydb/mysql_config.yml")
 
     def destroy(self):
         self.acsdb.exit()
