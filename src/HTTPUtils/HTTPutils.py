@@ -12,6 +12,8 @@ import socks
 import socket
 from stem import Signal
 from stem.control import Controller
+from loggerUtils import init_logging
+import logging
 import random
 import time
 import http  # this seems to be needed for exception handling in http client
@@ -59,6 +61,9 @@ def imitate_user(top=1):
 def init_tor(header_type):
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"HTTPUtils_config.yml"), "r") as fh:
         settings = yaml.load(fh)
+    init_logging()
+    global http_logger
+    http_logger = logging.getLogger(__name__)
     try:
         rotate_ip(settings)
         imitate_user()
@@ -66,9 +71,9 @@ def init_tor(header_type):
         socket.socket = socks.socksocket
         r = Request('http://icanhazip.com', headers=define_headers(header_type))
         test = urlopen(r).read()
-        print("Tor network accessed and using ip: %s" % test.rstrip())  # check ip
+        http_logger.info("Tor network accessed and using ip: %s" % test.rstrip())
     except:
-        print("There was an error using the TOR network on localhost:9050")
+        http_logger.error("There was an error using the TOR network on localhost:9050")
 
 
 def get_page(in_url, header_type):
@@ -77,23 +82,23 @@ def get_page(in_url, header_type):
         req = Request(in_url, data=None, headers=define_headers(header_type))
         html = urlopen(req)
     except HTTPError as e:
-        print("URL: %s - HTTP error: %s " % (in_url, e))
+        http_logger.error("URL: %s - HTTP error: %s " % (in_url, e))
     except URLError as e:
-        print("URL: %s - Server is not reachable: %s" % (in_url, e))
+        http_logger.error("URL: %s - Server is not reachable: %s" % (in_url, e))
     except http.client.HTTPException as e:
-        print(e)
+        http_logger.error(e)
     else:
-        print("Retrieved requested URL: %s" % in_url.rstrip())
+        http_logger.info("Retrieved requested URL: %s" % in_url.rstrip())
 
     base_url = get_base_url(in_url)
 
     try:
         bsObj = BeautifulSoup(html, 'lxml')
     except AttributeError as e:
-        print("Page was not found: %s" % e)
+        http_logger.error("Page was not found: %s" % e)
     else:
         if bsObj is None:
-            print("Page has no data: %s" % e)
+            http_logger.info("Page has no data: %s" % e)
         else:
             return(bsObj, base_url)
 
@@ -102,7 +107,7 @@ def get_base_url(url):
     try:
         base_url = re.match(r'^(http[s]?:\/\/[\w\.]*/)', url).group(1)
     except Exception as e:
-        print("Can't find base url for %s" % url)
+        http_logger.error("Can't find base url for %s" % url)
         base_url = None
     return(base_url)
 

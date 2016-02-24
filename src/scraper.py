@@ -35,7 +35,7 @@ class WalmartScraper(object):
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb
-        self.outfile = "../data/toys_20160218.csv"
+        self.outfile = "../data/test.csv"
         self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight',
                            'az_sales_rank', 'az_match', 'url', 'img', 'az_url', 'az_asin')
         self.url_cats = settings['toys']
