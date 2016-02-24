@@ -41,9 +41,9 @@ def rotate_ip(settings):
             with Controller.from_port(port=settings['TOR_PORT']) as controller:
                 controller.authenticate(password=settings['TOR_PASSPHRASE'])
                 controller.signal(Signal.NEWNYM)
-                print("Tor ip reset!")
+                http_logger.info("Tor ip reset!")
         except Exception as e:
-            print("Failed to contact Tor controller")
+            http_logger.error("Failed to contact Tor controller: %s" % e)
 
 
 def imitate_user(top=1):

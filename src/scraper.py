@@ -13,6 +13,7 @@ from loggerUtils import init_logging
 import logging
 import csv
 import os
+import time
 
 
 
@@ -43,7 +44,7 @@ class WalmartScraper(object):
         self.page_url = settings['page_url']
         self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
-        self.pc = 0
+        self.depth_limit = settings['depth_limit']
 
     def destroy(self):
         """
@@ -51,6 +52,7 @@ class WalmartScraper(object):
         :return:
         """
         #self.driver.service.process.send_signal(signal.SIGTERM)
+        self.logger.info("Walmart object cleanly destroyed...")
         self.driver.quit()
 
     def scrape(self, pc=None, change_url=None):
@@ -125,10 +127,20 @@ class WalmartScraper(object):
         return round(net/price, 2)
 
     def get_list(self, page):
-        entries = page.find("ul", {"class": "tile-list-grid"})
-        if entries is None:
+        """
+        method takes search results page from Walmart and parses out items to save.
+        Has error checking for no search results or an empty set.
+        :param page: bs4 object returned from get_page
+        :return:
+        """
+        if page.find(string=re.compile(r'We found 0 results')):
             self.run = False
             return
+        elif not page.find("ul", {"class": "tile-list-grid"}):
+            self.run = False
+            return
+        else:
+            entries = page.find("ul", {"class": "tile-list-grid"})
         for e in entries:
             if len(e) == 1:
                 continue
@@ -162,8 +174,8 @@ class WalmartScraper(object):
         if self.page_url:
             next_url += self.page_url
             next_url += str(self.pc)
-        if self.pc == 12:
-            self.run = False  # recursion limit
+        if self.pc == self.depth_limit:
+            self.run = False  # recursion limit reached
         return next_url
 
     def get_page(self, url):
@@ -189,8 +201,16 @@ class WalmartScraper(object):
 
 
 if __name__ == '__main__':
-    scraper = WalmartScraper()
-    scraper.init_output()
-    for cat in scraper.url_cats:
+    cats = ["/toys/scooters/4171_133073_132589",
+            "/toys/kids-bikes/4171_133073_1085618",
+            "/toys/pedal-push/4171_133073_5354",
+            "/toys/wagons/4171_133073_91644"]
+    for cat in cats:
+        scraper = WalmartScraper()
+        scraper.init_output()
         scraper.scrape(0, cat)
-    scraper.destroy()
+        scraper.destroy()
+        time.sleep(100)  # allow phantomjs to tear down
+    # for cat in scraper.url_cats:
+    #     scraper.scrape(0, cat)
+    # scraper.destroy()
