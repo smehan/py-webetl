@@ -102,4 +102,4 @@ data/
 # ignore site-specific configuration file
 /src/config.yaml
 /src/AZ/az_config.yaml
-/src/logging.yaml
+/logging.yml

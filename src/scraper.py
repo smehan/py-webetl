@@ -10,10 +10,10 @@ from bs4 import BeautifulSoup
 from AZ import AZ
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 from loggerUtils import init_logging
+import logging
 import csv
 import os
-import logging
-import logging.config
+
 
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)  # TODO: split this out into config

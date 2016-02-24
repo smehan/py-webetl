@@ -8,7 +8,7 @@ import logging.config
 import os
 
 
-def init_logging(default_path='logging.yaml', default_level=logging.INFO, env_key='LOG_CFG'):
+def init_logging(default_path='logging.yml', default_level=logging.INFO, env_key='LOG_CFG'):
     """Setup logging configuration
 
     """
