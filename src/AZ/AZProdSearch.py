@@ -3,19 +3,27 @@
 #  -*- coding: utf-8 -*-
 
 from amazon.api import AmazonAPI
+from HTTPUtils import get_page
 import yaml
-import os, sys
+import os
+from loggerUtils import init_logging
+import logging
+import re
 
 
 class AZ(object):
     def __init__(self):
+        init_logging()
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Amazon object initialized")
 
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "az_config.yaml"), "r") as fh:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "az_config.yml"), "r") as fh:
             settings = yaml.load(fh)
 
         self.access_key = settings['access_key_id']
         self.secret_key = settings['secret_key_id']
         self.associate_tag = settings['associate_tag']
+        self.item = {}
         self.az_price = None
         self.az_asin = None
         self.az_weight = settings['default_weight']
@@ -24,6 +32,9 @@ class AZ(object):
         self.az_match = None
 
         self.amazon = AmazonAPI(self.access_key, self.secret_key, self.associate_tag)
+
+    def destroy(self):
+        self.logger.info("Amazon object destroyed")
 
     def find_best_match(self, title, cat='All'):  # TODO: consider using cat='Blended' for default
         """
@@ -65,7 +76,7 @@ class AZ(object):
         lowest = 0.0
         try:
             products = self.amazon.search(Keywords=title, SearchIndex=cat)
-            for i,p in enumerate(products):
+            for i, p in enumerate(products):
                 price = p.price_and_currency[0]
                 if lowest == 0.0:
                     lowest = price
@@ -87,6 +98,7 @@ class AZ(object):
                 u = p.offer_url
             except:
                 pass
+            self._get_meta_rate(p.reviews[1])
             if r is None:
                 r = 0
             if w is None:
@@ -115,3 +127,17 @@ class AZ(object):
             w = 0
         return w
 
+    def _get_meta_rate(self, url):
+        rank_page = get_page(url, 1)
+        if rank_page[0].find(string=re.compile(r'There are no customer reviews for this item')):
+            self.item['num_reviews'] = 0
+            self.item['avg_review'] = 0
+        else:
+            rating = rank_page[0].find("span", {"class":"asinReviewsSummary"}).img.attrs['title']
+            self.item['num_reviews'] = rating
+            reviews = rank_page[0].find(string=re.compile(r'\d+ customer reviews'))
+            self.item['avg_review'] = reviews
+
+if __name__ == '__main__':
+    az = AZ()
+    az.destroy()

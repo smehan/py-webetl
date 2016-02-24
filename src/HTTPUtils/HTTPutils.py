@@ -66,7 +66,7 @@ def init_tor(header_type):
     http_logger = logging.getLogger(__name__)
     try:
         rotate_ip(settings)
-        imitate_user()
+        imitate_user(0.05)
         socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
         socket.socket = socks.socksocket
         r = Request('http://icanhazip.com', headers=define_headers(header_type))
