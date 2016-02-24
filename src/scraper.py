@@ -16,7 +16,7 @@ import logging
 import logging.config
 
 
-dcap = dict(DesiredCapabilities.PHANTOMJS)
+dcap = dict(DesiredCapabilities.PHANTOMJS)  # TODO: split this out into config
 dcap["phantomjs.page.settings.userAgent"] = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/53 "
     "(KHTML, like Gecko) Chrome/15.0.87"
@@ -50,7 +50,7 @@ class WalmartScraper(object):
         method to destroy all objects and clean up.
         :return:
         """
-        self.driver.service.process.send_signal(signal.SIGTERM)
+        #self.driver.service.process.send_signal(signal.SIGTERM)
         self.driver.quit()
 
     def scrape(self, pc=None, change_url=None):

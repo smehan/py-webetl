@@ -4,7 +4,7 @@
 from bs4 import BeautifulSoup
 import re
 from config import settings  # local config file
-from HTTPutils import *
+from HTTPUtils import get_page
 
 
 def get_details(entry):

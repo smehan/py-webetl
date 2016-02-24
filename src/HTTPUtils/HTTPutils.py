@@ -15,10 +15,12 @@ from stem.control import Controller
 import random
 import time
 import http  # this seems to be needed for exception handling in http client
+import yaml
+import os
 from config import settings  # local config file
 
 
-def define_headers(header_type):
+def define_headers(header_type):  # TODO: Split out the header info into config
     if header_type == 1:
         return({"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
                 "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -30,11 +32,11 @@ def define_headers(header_type):
                 "Accept-Language":"en-US,en;q=0.8"})
 
 
-def rotate_ip():
+def rotate_ip(settings):
     random.seed()
     if random.random() <= 0.05:
         try:
-            with Controller.from_port(port=9051) as controller:
+            with Controller.from_port(port=settings['TOR_PORT']) as controller:
                 controller.authenticate(password=settings['TOR_PASSPHRASE'])
                 controller.signal(Signal.NEWNYM)
                 print("Tor ip reset!")
@@ -55,8 +57,10 @@ def imitate_user(top=1):
 
 
 def init_tor(header_type):
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"HTTPUtils_config.yml"), "r") as fh:
+        settings = yaml.load(fh)
     try:
-        rotate_ip()
+        rotate_ip(settings)
         imitate_user()
         socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
         socket.socket = socks.socksocket
