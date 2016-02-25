@@ -19,7 +19,6 @@ import time
 import http  # this seems to be needed for exception handling in http client
 import yaml
 import os
-from config import settings  # local config file
 
 
 def define_headers(header_type=None):  # TODO: Split out the header info into config
