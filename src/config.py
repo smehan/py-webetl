@@ -1,4 +1,4 @@
 import yaml
 
-with open("config.yaml", "r") as f:
+with open("config.yml", "r") as f:
     settings = yaml.load(f)

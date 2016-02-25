@@ -22,7 +22,7 @@ import os
 from config import settings  # local config file
 
 
-def define_headers(header_type):  # TODO: Split out the header info into config
+def define_headers(header_type=None):  # TODO: Split out the header info into config
     if header_type == 1:
         return({"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
                 "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -35,6 +35,12 @@ def define_headers(header_type):  # TODO: Split out the header info into config
 
 
 def rotate_ip(settings):
+    """
+    something bad with controller port being pushed out through tor network and so
+    fails to contact controller. http://stackoverflow.com/questions/28035413/general-socks-server-failure-when-switching-identity-using-stem
+    :param settings:
+    :return:
+    """
     random.seed()
     if random.random() <= 0.05:
         try:
@@ -61,11 +67,8 @@ def imitate_user(top=1):
 def init_tor(header_type):
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"HTTPUtils_config.yml"), "r") as fh:
         settings = yaml.load(fh)
-    init_logging()
-    global http_logger
-    http_logger = logging.getLogger(__name__)
     try:
-        rotate_ip(settings)
+        # rotate_ip(settings)
         imitate_user(0.05)
         socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
         socket.socket = socks.socksocket
@@ -77,8 +80,11 @@ def init_tor(header_type):
 
 
 def get_page(in_url, header_type):
+    init_logging()
+    global http_logger
+    http_logger = logging.getLogger(__name__)
     try:
-        init_tor(header_type)
+        # init_tor(header_type)
         req = Request(in_url, data=None, headers=define_headers(header_type))
         html = urlopen(req)
     except HTTPError as e:

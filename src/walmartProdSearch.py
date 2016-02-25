@@ -10,10 +10,12 @@ from bs4 import BeautifulSoup
 from AZ import AZ
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 from loggerUtils import init_logging
+from Pydb import Mysql
 import logging
 import csv
 import os
 import time
+import datetime
 
 
 
@@ -24,14 +26,16 @@ dcap["phantomjs.page.settings.userAgent"] = (
 )
 
 
-class WalmartScraper(object):
+class WalmartProdSearch(object):
     def __init__(self):
         init_logging()
         self.logger = logging.getLogger(__name__)
         self.logger.info("Job started and logging enabled")
 
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"config.yml"), "r") as fh:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"walmart_config.yml"), "r") as fh:
             settings = yaml.load(fh)
+
+        self.db = Mysql(settings['db_config'])
 
         self.driver = webdriver.PhantomJS(desired_capabilities=dcap, service_args=['--ignore-ssl-errors=true', '--ssl-protocol=any'])
         self.driver.set_window_size(1024, 768)
@@ -52,6 +56,8 @@ class WalmartScraper(object):
         :return:
         """
         #self.driver.service.process.send_signal(signal.SIGTERM)
+        self.logger.info("Database connection closed...")
+        self.db.exit()
         self.logger.info("Walmart object cleanly destroyed...")
         self.driver.quit()
 
@@ -199,17 +205,27 @@ class WalmartScraper(object):
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
 
+    def get_target(self):
+        with self.db.con.cursor() as cursor:
+            select_sql = "select node, last_read from walmart_node ORDER BY last_read ASC"
+            cursor.execute(select_sql)
+            ret = cursor.fetchone()
+            if (datetime.datetime.now() - ret['last_read']) < datetime.timedelta(days=1):
+                self.logger.info("All product information is up to date - exiting.")
+                return None
+            else:
+                update_sql = "update walmart_node set last_read=now() where node=%s"
+                cursor.execute(update_sql, (ret['node']))
+                self.db.con.commit()
+                return ret['node']
+
 
 if __name__ == '__main__':
-    # cats = ["/toys/scooters/4171_133073_132589",
-    #         "/toys/kids-bikes/4171_133073_1085618",
-    #         "/toys/pedal-push/4171_133073_5354",
-    #         "/toys/wagons/4171_133073_91644"]
-    # for cat in cats:
-    scraper = WalmartScraper()
-    scraper.init_output()
-    # scraper.scrape(0, cat)
-    for cat in scraper.url_cats:
-        scraper.scrape(0, cat)
-    scraper.destroy()
-    #time.sleep(10)  # allow phantomjs to tear down
+    cat = "start"
+    while cat is not None:
+        wm = WalmartProdSearch()
+        wm.init_output()
+        cat = wm.get_target()
+        wm.scrape(0, cat)
+        wm.destroy()
+        time.sleep(10)  # allow phantomjs to tear down

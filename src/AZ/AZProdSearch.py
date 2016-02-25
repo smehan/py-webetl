@@ -133,10 +133,16 @@ class AZ(object):
             self.item['num_reviews'] = 0
             self.item['avg_review'] = 0
         else:
-            rating = rank_page[0].find("span", {"class":"asinReviewsSummary"}).img.attrs['title']
-            self.item['num_reviews'] = rating
-            reviews = rank_page[0].find(string=re.compile(r'\d+ customer reviews'))
-            self.item['avg_review'] = reviews
+            try:
+                rating = rank_page[0].find("span", {"class":"asinReviewsSummary"}).img.attrs['title']
+                self.item['num_reviews'] = rating
+            except:
+                self.item['num_reviews'] = 0
+            try:
+                reviews = rank_page[0].find(string=re.compile(r'\d+ customer reviews'))
+                self.item['avg_review'] = reviews
+            except:
+                self.item['avg_review'] = 0
 
 if __name__ == '__main__':
     az = AZ()

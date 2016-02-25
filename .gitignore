@@ -100,6 +100,6 @@ crashlytics-build.properties
 data/
 
 # ignore site-specific configuration file
-/src/config.yaml
+/config.yml
 /az_config.yml
 /logging.yml
