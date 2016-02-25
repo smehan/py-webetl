@@ -108,19 +108,32 @@ class WalmartProdSearch(object):
                              "last_read) " \
                              "VALUES " \
                              "(%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(insert_sql, (data['price'].strip(), data['url'].strip(), data['img'.strip()],
-                                            data['item_id'].strip(), data['title'].strip(),
-                                            datetime.datetime.now(),
-                                            datetime.datetime.now()))
-                self.db.con.commit()
+                try:
+                    cursor.execute(insert_sql, (data['price'].strip(),
+                                                data['url'].strip(),
+                                                data['img'.strip()],
+                                                data['item_id'].strip(),
+                                                data['title'].strip(),
+                                                datetime.datetime.now(),
+                                                datetime.datetime.now()))
+                    self.db.con.commit()
+                except:
+                    self.logger.exception('Failed to insert new walmart product.')
             elif data['price'] != ret['price']:
                 update_sql = "UPDATE walmart_product " \
                              "SET (price=%s, last_read=now(), " \
                              "last_changed=now(), title=%s, " \
                              "url=%s, img=%s) " \
                              "WHERE pk_id=%s"
-                cursor.execute(update_sql, (data['price'].strip(), data['title'].strip(), data['url'].strip(), data['img'].strip(), ret['pk_id']))
-                self.db.con.commit()
+                try:
+                    cursor.execute(update_sql, (data['price'].strip(),
+                                                data['title'].strip(),
+                                                data['url'].strip(),
+                                                data['img'].strip(),
+                                                ret['pk_id']))
+                    self.db.con.commit()
+                except:
+                    self.logger.exception('Failed to update walmart product.')
             else:
                 update_sql = "UPDATE walmart_product " \
                              "SET (last_read=now())" \
