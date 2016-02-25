@@ -121,14 +121,12 @@ class WalmartProdSearch(object):
                     self.logger.exception('Failed to insert new walmart product.')
             elif data['price'] != ret['price']:
                 update_sql = "UPDATE walmart_product " \
-                             "SET (price=%s, last_read=%s, " \
-                             "last_changed=%s, title=%s, " \
-                             "url=%s, img=%s) " \
+                             "SET price=%s, last_read=now(), " \
+                             "last_changed=now(), title=%s, " \
+                             "url=%s, img=%s " \
                              "WHERE pk_id=%s"
                 try:
                     cursor.execute(update_sql, (data['price'].strip(),
-                                                datetime.datetime.now(),
-                                                datetime.datetime.now(),
                                                 data['title'].strip(),
                                                 data['url'].strip(),
                                                 data['img'].strip(),
@@ -138,7 +136,7 @@ class WalmartProdSearch(object):
                     self.logger.exception('Failed to update walmart product.')
             else:
                 update_sql = "UPDATE walmart_product " \
-                             "SET (last_read=now())" \
+                             "SET last_read=now()" \
                              "WHERE pk_id=%s"
                 cursor.execute(update_sql, (ret['pk_id']))
                 self.db.con.commit()
