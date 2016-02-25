@@ -1,4 +1,10 @@
 ---
+## global parameters
+depth_limit:  2
+db_config: "Pydb/mysql_config.yml"
+
+## debug
+debug: True
 
 ## site search url components
 site_url: "http://www.example.com/browse"

@@ -41,14 +41,16 @@ class WalmartProdSearch(object):
         self.driver.set_window_size(1024, 768)
         self.shipping_rate = 0.75  # $rate/lb  # TODO: shift this to AZ class
         self.outfile = "../data/test.csv"
-        self.fieldnames = ('net', 'roi', 'name', 'price', 'az_price', 'weight',
-                           'az_sales_rank', 'az_match', 'url', 'img', 'az_url', 'az_asin')
-        self.url_cats = settings['toys']
+        self.depth_limit = settings['depth_limit']
+        self.debug = settings['debug']
+        self.fieldnames = ('net', 'roi', 'title', 'price', 'az_price', 'weight',
+                           'az_sales_rank', 'az_match', 'url', 'img', 'az_url', 'az_asin',
+                           'item_id')
         self.site_url = settings['site_url']
         self.page_url = settings['page_url']
         self.base_url = strip_final_slash(get_base_url(self.site_url))
         self.az = AZ()
-        self.depth_limit = settings['depth_limit']
+
 
     def destroy(self):
         """
@@ -93,6 +95,38 @@ class WalmartProdSearch(object):
                 outwriter.writeheader()
 
     def process_output(self, data):
+        with self.db.con.cursor() as cursor:
+            select_sql = "SELECT pk_id, price " \
+                         "FROM walmart_product " \
+                         "WHERE item_id=%s"
+            cursor.execute(select_sql, (data['item_id']))
+            ret = cursor.fetchone()
+            if ret is None:
+                insert_sql = "INSERT INTO walmart_product " \
+                             "(price, url, img, item_id, " \
+                             "title, last_changed, " \
+                             "last_read) " \
+                             "VALUES " \
+                             "(%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(insert_sql, (data['price'], data['url'], data['img'],
+                                            data['item_id'], data['title'],
+                                            datetime.datetime.now(),
+                                            datetime.datetime.now()))
+                self.db.con.commit()
+            elif data['price'] != ret['price']:
+                update_sql = "UPDATE walmart_product " \
+                             "SET (price=%s, last_read=now(), " \
+                             "last_changed=now(), title=%s, " \
+                             "url=%s, img=%s) " \
+                             "WHERE pk_id=%s"
+                cursor.execute(update_sql, (data['price'], data['title'], data['url'], data['img'], ret['pk_id']))
+                self.db.con.commit()
+            else:
+                update_sql = "UPDATE walmart_product " \
+                             "SET (last_read=now())" \
+                             "WHERE pk_id=%s"
+                cursor.execute(update_sql, (ret['pk_id']))
+                self.db.con.commit()
         with open(self.outfile, 'a', encoding='utf-8') as fh:
             outwriter = csv.DictWriter(fh,
                                        fieldnames=self.fieldnames,
@@ -123,7 +157,7 @@ class WalmartProdSearch(object):
             net = round(net, 2)
         except:
             self.logger.error("Bad net value for %s - price:%s, az_price:%s, weight:%s" %
-                              (data['name'], data['price'], data['az_price'], data['weight']))
+                              (data['title'], data['price'], data['az_price'], data['weight']))
             net = 0.0
         return net
 
@@ -139,6 +173,7 @@ class WalmartProdSearch(object):
         :param page: bs4 object returned from get_page
         :return:
         """
+        imitate_user(0.5)
         if page.find(string=re.compile(r'We found 0 results')):
             self.run = False
             return
@@ -153,10 +188,9 @@ class WalmartProdSearch(object):
             elif e.name == "script":
                 continue
             else:
-                imitate_user(0.05)
                 entry = {}
                 try:
-                    entry['name'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
+                    entry['title'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
                 except:
                     continue
                 if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
@@ -164,11 +198,13 @@ class WalmartProdSearch(object):
                 else:
                     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
                 try:
-                    entry['price'] = e.find("span", {"class":"price-display"}).get_text()
+                    entry['price'] = e.find("span", {"class":"price-display"}).get_text().replace('$', '')
                 except:
                     continue
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['name'], 'Toys')
+                entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
+                print(entry['item_id'])
+                entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['title'], 'Toys')
                 entry['net'] = self.get_net(entry)
                 entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
@@ -205,12 +241,18 @@ class WalmartProdSearch(object):
         page = BeautifulSoup(self.driver.page_source, "lxml")
         return page
 
+    def _is_recent(self, t):
+        if (datetime.datetime.now() - t) < datetime.timedelta(days=1):
+            return True
+        else:
+            return False
+
     def get_target(self):
         with self.db.con.cursor() as cursor:
             select_sql = "select node, last_read from walmart_node ORDER BY last_read ASC"
             cursor.execute(select_sql)
             ret = cursor.fetchone()
-            if (datetime.datetime.now() - ret['last_read']) < datetime.timedelta(days=1):
+            if self._is_recent(ret['last_read']):
                 self.logger.info("All product information is up to date - exiting.")
                 return None
             else:

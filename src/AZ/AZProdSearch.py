@@ -96,9 +96,9 @@ class AZ(object):
                 r = int(p.sales_rank)
                 w = p.get_attribute('ItemDimensions.Weight')
                 u = p.offer_url
+                self._get_meta_rate(p.reviews[1])
             except:
                 pass
-            self._get_meta_rate(p.reviews[1])
             if r is None:
                 r = 0
             if w is None:
