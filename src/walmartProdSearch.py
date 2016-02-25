@@ -108,8 +108,8 @@ class WalmartProdSearch(object):
                              "last_read) " \
                              "VALUES " \
                              "(%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(insert_sql, (data['price'], data['url'], data['img'],
-                                            data['item_id'], data['title'],
+                cursor.execute(insert_sql, (data['price'].strip(), data['url'].strip(), data['img'.strip()],
+                                            data['item_id'].strip(), data['title'].strip(),
                                             datetime.datetime.now(),
                                             datetime.datetime.now()))
                 self.db.con.commit()
@@ -119,7 +119,7 @@ class WalmartProdSearch(object):
                              "last_changed=now(), title=%s, " \
                              "url=%s, img=%s) " \
                              "WHERE pk_id=%s"
-                cursor.execute(update_sql, (data['price'], data['title'], data['url'], data['img'], ret['pk_id']))
+                cursor.execute(update_sql, (data['price'].strip(), data['title'].strip(), data['url'].strip(), data['img'].strip(), ret['pk_id']))
                 self.db.con.commit()
             else:
                 update_sql = "UPDATE walmart_product " \
@@ -203,7 +203,6 @@ class WalmartProdSearch(object):
                     continue
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
                 entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
-                print(entry['item_id'])
                 entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['title'], 'Toys')
                 entry['net'] = self.get_net(entry)
                 entry['roi'] = self.get_roi(entry)
