@@ -103,6 +103,7 @@ data/
 /flyway-3.2.1/
 
 # ignore site-specific configuration file
+*.yml
 config.yaml
 az_config.yaml
 /src/Gmap/google_config.yaml

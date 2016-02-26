@@ -219,13 +219,116 @@ class Populate():
                     print(e)
                 self.acsdb.con.commit()
 
+    def load_S2503_moe(self):
+        """
+        Same general method as load_S2503 but this loads the MOE for each variable in the dataset.
+        :return:
+        """
+        data = {}
+        with open("data/ACS_14_5YR_S2503.csv") as fh:
+            reader = csv.reader(fh)
+            r_count = 0
+            for r in reader:
+                r_count += 1
+                if r_count < 3:
+                    continue
+                # name = re.search(r'[\w .]+', r[2]).group(0)
+                r = [e.replace('-', '0') for e in r]
+                r = [e.replace('(X)', '0') for e in r]
+                r = [e.replace('250,000+', '250000') for e in r]
+                r = [e.replace('***', '0') for e in r]
+                r = [e.replace('**', '0') for e in r]
+                data[r[1]] = [{'HC01_VC01_MOE': float(r[4])},
+                              {'HC02_VC01_MOE': float(r[6])},
+                              {'HC03_VC01_MOE': float(r[8])},
+                              {'HC01_VC03_MOE': float(r[10])},
+                              {'HC02_VC03_MOE': float(r[12])},
+                              {'HC03_VC03_MOE': float(r[14])},
+                              {'HC01_VC04_MOE': float(r[16])},
+                              {'HC02_VC04_MOE': float(r[18])},
+                              {'HC03_VC04_MOE': float(r[20])},
+                              {'HC01_VC05_MOE': float(r[22])},
+                              {'HC02_VC05_MOE': float(r[24])},
+                              {'HC03_VC05_MOE': float(r[26])},
+                              {'HC01_VC06_MOE': float(r[28])},
+                              {'HC02_VC06_MOE': float(r[30])},
+                              {'HC03_VC06_MOE': float(r[32])},
+                              {'HC01_VC07_MOE': float(r[34])},
+                              {'HC02_VC07_MOE': float(r[36])},
+                              {'HC03_VC07_MOE': float(r[38])},
+                              {'HC01_VC08_MOE': float(r[40])},
+                              {'HC02_VC08_MOE': float(r[42])},
+                              {'HC03_VC08_MOE': float(r[44])},
+                              {'HC01_VC09_MOE': float(r[46])},
+                              {'HC02_VC09_MOE': float(r[48])},
+                              {'HC03_VC09_MOE': float(r[50])},
+                              {'HC01_VC10_MOE': float(r[52])},
+                              {'HC02_VC10_MOE': float(r[54])},
+                              {'HC03_VC10_MOE': float(r[56])},
+                              {'HC01_VC11_MOE': float(r[58])},
+                              {'HC02_VC11_MOE': float(r[60])},
+                              {'HC03_VC11_MOE': float(r[62])},
+                              {'HC01_VC12_MOE': float(r[64])},
+                              {'HC02_VC12_MOE': float(r[66])},
+                              {'HC03_VC12_MOE': float(r[68])},
+                              {'HC01_VC13_MOE': float(r[70])},
+                              {'HC02_VC13_MOE': float(r[72])},
+                              {'HC03_VC13_MOE': float(r[74])},
+                              {'HC01_VC14_MOE': float(r[76])},
+                              {'HC02_VC14_MOE': float(r[78])},
+                              {'HC03_VC14_MOE': float(r[80])}]
+        with self.acsdb.con.cursor() as cursor:
+            for r in data:
+                get_track_id_sql = "SELECT `pk_id` FROM `census_tract_2010` AS c WHERE `track_id`=%s"
+                cursor.execute(get_track_id_sql, (r))
+                track_pk_id = cursor.fetchone()
+                if track_pk_id is None:
+                    continue
+                get_pk_id_sql = "SELECT pk_id FROM S2503_ACS WHERE track_pk_id=%s"
+                cursor.execute(get_pk_id_sql, (track_pk_id['pk_id']))
+                ret = cursor.fetchone()
+                update_sql = "UPDATE `S2503_ACS` SET " \
+                             "`HC01_VC01_MOE`=%s, `HC02_VC01_MOE`=%s, `HC03_VC01_MOE`=%s, " \
+                             "`HC01_VC03_MOE`=%s, `HC02_VC03_MOE`=%s, `HC03_VC03_MOE`=%s, " \
+                             "`HC01_VC04_MOE`=%s, `HC02_VC04_MOE`=%s, `HC03_VC04_MOE`=%s, " \
+                             "`HC01_VC05_MOE`=%s, `HC02_VC05_MOE`=%s, `HC03_VC05_MOE`=%s, " \
+                             "`HC01_VC06_MOE`=%s, `HC02_VC06_MOE`=%s, `HC03_VC06_MOE`=%s, " \
+                             "`HC01_VC07_MOE`=%s, `HC02_VC07_MOE`=%s, `HC03_VC07_MOE`=%s, " \
+                             "`HC01_VC08_MOE`=%s, `HC02_VC08_MOE`=%s, `HC03_VC08_MOE`=%s, " \
+                             "`HC01_VC09_MOE`=%s, `HC02_VC09_MOE`=%s, `HC03_VC09_MOE`=%s, " \
+                             "`HC01_VC10_MOE`=%s, `HC02_VC10_MOE`=%s, `HC03_VC10_MOE`=%s, " \
+                             "`HC01_VC11_MOE`=%s, `HC02_VC11_MOE`=%s, `HC03_VC11_MOE`=%s, " \
+                             "`HC01_VC12_MOE`=%s, `HC02_VC12_MOE`=%s, `HC03_VC12_MOE`=%s, " \
+                             "`HC01_VC13_MOE`=%s, `HC02_VC13_MOE`=%s, `HC03_VC13_MOE`=%s, " \
+                             "`HC01_VC14_MOE`=%s, `HC02_VC14_MOE`=%s, `HC03_VC14_MOE`=%s " \
+                             "WHERE " \
+                             "pk_id=%s"
+                try:
+                    cursor.execute(update_sql, (data[r][0]['HC01_VC01_MOE'], data[r][1]['HC02_VC01_MOE'], data[r][2]['HC03_VC01_MOE'],
+                                                data[r][3]['HC01_VC03_MOE'], data[r][4]['HC02_VC03_MOE'], data[r][5]['HC03_VC03_MOE'],
+                                                data[r][6]['HC01_VC04_MOE'], data[r][7]['HC02_VC04_MOE'], data[r][8]['HC03_VC04_MOE'],
+                                                data[r][9]['HC01_VC05_MOE'], data[r][10]['HC02_VC05_MOE'], data[r][11]['HC03_VC05_MOE'],
+                                                data[r][12]['HC01_VC06_MOE'], data[r][13]['HC02_VC06_MOE'], data[r][14]['HC03_VC06_MOE'],
+                                                data[r][15]['HC01_VC07_MOE'], data[r][16]['HC02_VC07_MOE'], data[r][17]['HC03_VC07_MOE'],
+                                                data[r][18]['HC01_VC08_MOE'], data[r][19]['HC02_VC08_MOE'], data[r][20]['HC03_VC08_MOE'],
+                                                data[r][21]['HC01_VC09_MOE'], data[r][22]['HC02_VC09_MOE'], data[r][23]['HC03_VC09_MOE'],
+                                                data[r][24]['HC01_VC10_MOE'], data[r][25]['HC02_VC10_MOE'], data[r][26]['HC03_VC10_MOE'],
+                                                data[r][27]['HC01_VC11_MOE'], data[r][28]['HC02_VC11_MOE'], data[r][29]['HC03_VC11_MOE'],
+                                                data[r][30]['HC01_VC12_MOE'], data[r][31]['HC02_VC12_MOE'], data[r][32]['HC03_VC12_MOE'],
+                                                data[r][33]['HC01_VC13_MOE'], data[r][34]['HC02_VC13_MOE'], data[r][35]['HC03_VC13_MOE'],
+                                                data[r][36]['HC01_VC14_MOE'], data[r][37]['HC02_VC14_MOE'], data[r][38]['HC03_VC14_MOE'],
+                                                ret['pk_id']))
+                except Exception as e:
+                    print(e)
+                self.acsdb.con.commit()
 
 if __name__ == '__main__':
     pop = Populate()
     #pop.load_tracts()
     #pop.load_S2503()
     #pop.load_geo_details()
-    pop.load_zip_tract_crosswalk()
+    #pop.load_zip_tract_crosswalk()
+    pop.load_S2503_moe()
     pop.destroy()
 
 

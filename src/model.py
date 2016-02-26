@@ -2,6 +2,7 @@
 from Pydb import Mysql
 import pprint
 import csv
+import os
 
 class Model():
     """
@@ -17,6 +18,10 @@ class Model():
         self.db.exit()
 
     def get_tracts(self):
+        """
+        Builds up a data set of all tracts, including ratio to compute to each zip.
+        :return:
+        """
         self._get_zips()
         self._build_tracts()
         self._add_median_incomes()
@@ -37,6 +42,11 @@ class Model():
                 self.tracts[r['zipcode']] = {'zip_pk_id': r['pk_id']}
 
     def _build_tracts(self):
+        """
+        builds up tract information in dataset, adding a track_pk_id, the ratio of
+        residences of that tract to be counted in the chosen zip.
+        :return:
+        """
         with self.db.con.cursor() as cursor:
             for z in self.tracts:
                 select_sql = "SELECT `track_pk_id`, `res_ratio` FROM `zip_tract_cw` " \
@@ -47,6 +57,10 @@ class Model():
                     self.tracts[z][r['track_pk_id']] = {'res_ratio': r['res_ratio']}
 
     def _add_median_incomes(self):
+        """
+        builds median incomes for each tract, by occupied, owner-occupied, renter.
+        :return:
+        """
         with self.db.con.cursor() as cursor:
             for z in self.tracts:
                 for k,v in self.tracts[z].items():
@@ -62,12 +76,18 @@ class Model():
                         self.tracts[z][k]['HC03_VC14'] = ret['HC03_VC14']
 
     def _add_housing(self):
+        """
+        builds housing totals for occupied, owner-occupied, renter in each tract.
+        :return:
+        """
         with self.db.con.cursor() as cursor:
             for z in self.tracts:
                 for k,v in self.tracts[z].items():
                     if k == 'zip_pk_id':
                         continue
-                    select_sql = "SELECT `HC01_VC01`, `HC02_VC01`, `HC03_VC01` FROM `S2503_ACS` " \
+                    select_sql = "SELECT `HC01_VC01`, `HC01_VC01_MOE`, " \
+                                 "`HC02_VC01`, `HC02_VC01_MOE`, " \
+                                 "`HC03_VC01`, `HC03_VC01_MOE` FROM `S2503_ACS` " \
                                  "WHERE `track_pk_id`=%s"
                     cursor.execute(select_sql, (k))
                     ret = cursor.fetchone()
@@ -75,44 +95,95 @@ class Model():
                         self.tracts[z][k]['HC01_VC01'] = ret['HC01_VC01']
                         self.tracts[z][k]['HC02_VC01'] = ret['HC02_VC01']
                         self.tracts[z][k]['HC03_VC01'] = ret['HC03_VC01']
+                        self.tracts[z][k]['HC01_VC01_MOE'] = ret['HC01_VC01_MOE']
+                        self.tracts[z][k]['HC02_VC01_MOE'] = ret['HC02_VC01_MOE']
+                        self.tracts[z][k]['HC03_VC01_MOE'] = ret['HC03_VC01_MOE']
 
     def build_densities(self):
-        output = []
+        """
+        calculates the density of renters/total occupied units in each zip.
+        multiplies number of renters/occupiers by the weight of each tract contributing
+        to the current zip.
+        :return:
+        """
         for z in self.tracts:
-            t_den = 0
-            count = 0
+            t_rent = 0
+            t_occ = 0
+            self.tracts[z]['max_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
+            self.tracts[z]['max_renter_income'] = self.tracts[z].get('max_renter_income', 0.0)
             for k,v in self.tracts[z].items():
-                if k == 'zip_pk_id':
-                    continue
-                if 'HC03_VC01' not in v or 'HC01_VC01' not in v or 'res_ratio' not in v:
-                    print("Insufficient data for renter density for %s: %s" % (z, k))
-                    continue
-                if v['HC01_VC01'] == 0:
-                    continue  # no housing in this tract
-                if v['res_ratio'] == 0:
-                    v['res_ratio'] = 1.0
-                t_den += v['HC03_VC01']/v['HC01_VC01'] * v['res_ratio']
-                count += 1
-                output.append([v['HC03_VC01']/v['HC01_VC01'], v['HC03_VC01'], v['HC01_VC01'], z])
-            if count != 0:
-                density = t_den/count
-                self.tracts[z]['renter_density'] = density
-        self.make_output(output)
+                if isinstance(k, int):
+                    renters = v.get('HC03_VC01', 0)
+                    occupied = v.get('HC01_VC01', 1)
+                    res_ratio = v.get('res_ratio', 1)
+                    if res_ratio == 0: res_ratio = 1
+                    if renters > 0:
+                        current_den = ((renters * res_ratio)/occupied)
+                    else:
+                        current_den = 0.0
+                    if self.tracts[z]['max_renter_density'] < current_den:
+                        self.tracts[z]['max_renter_density'] = round(current_den, 2)
+                        self.tracts[z]['max_renter_income'] = v['HC03_VC14']
+                    t_rent += renters * res_ratio
+                    t_occ += occupied * res_ratio
+            if t_rent == 0:
+                self.tracts[z]['avg_renter_density'] = 0.0
+            else:
+                self.tracts[z]['avg_renter_density'] = round(t_rent/t_occ, 2)
+        #self.make_output(output)
+        #self.make_output(self.tracts, meth='pp')
 
+    def build_model(self):
+        """
 
-    def make_output(self, data, meth=None):
+        :return:
+        """
+        output = []  # [z, avg_renter_den, max_rent_den, avg_renter_inc, max_renter_inc]
+        for z in self.tracts:
+            line = [z]
+            total_med_renter_income = 0
+            n = 1
+            for k,v in self.tracts[z].items():
+                if k == 'zip_pk_id' or k == 'max_renter_income':
+                    continue
+                if k == 'avg_renter_density':
+                    line.append(self.tracts[z]['avg_renter_density'])
+                    continue
+                if k == 'max_renter_density':
+                    line.append(self.tracts[z]['max_renter_density'])
+                    continue
+                if 'HC03_VC14' not in self.tracts[z][k]:
+                    self.tracts[z][k]['HC03_VC14'] = 0
+                total_med_renter_income += self.tracts[z][k]['HC03_VC14']
+                n += 1
+            if n == 1:
+                self.tracts[z]['avg_renter_income'] = round(total_med_renter_income/(n), 2)
+            else:
+                self.tracts[z]['avg_renter_income'] = round(total_med_renter_income/(n-1), 2)
+            line.append(self.tracts[z]['avg_renter_income'])
+            line.append(self.tracts[z]['max_renter_income'])
+            output.append(line)
+        self.make_output(output, filename='model')
+
+    def make_output(self, data, meth=None, filename=None):
         if meth == 'pp':
             pp = pprint.PrettyPrinter()
-            pp.pprint(self.tracts)
-        else:
-            with open("../data/output/output.csv", 'w') as fh:
-                writer = csv.writer(fh)
-                for line in data:
-                    writer.writerow(line)
+            pp.pprint(data)
+            return
+        elif filename is None:
+            filename='output'
+        dir_name='../data/output'
+        filename_suffix = '.csv'
+        path = os.path.join(dir_name, filename + filename_suffix)
+        with open(path, 'w') as fh:
+            writer = csv.writer(fh)
+            for line in data:
+                writer.writerow(line)
 
 if __name__ == '__main__':
     myModel = Model()
     myModel.get_tracts()
     myModel.build_densities()
-    #myModel.output()
+    myModel.build_model()
+    myModel.make_output(data=myModel.tracts, meth='pp')
     myModel.destroy()
