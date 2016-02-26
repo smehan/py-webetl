@@ -125,7 +125,7 @@ class Model():
                         current_den = 0.0
                     if self.tracts[z]['max_renter_density'] < current_den:
                         self.tracts[z]['max_renter_density'] = round(current_den, 2)
-                        self.tracts[z]['max_renter_income'] = v['HC03_VC14']
+                        self.tracts[z]['max_renter_income'] = round(v.get('HC03_VC14', 0.0), 0)
                     t_rent += renters * res_ratio
                     t_occ += occupied * res_ratio
             if t_rent == 0:
@@ -135,35 +135,43 @@ class Model():
         #self.make_output(output)
         #self.make_output(self.tracts, meth='pp')
 
+    def build_incomes(self):
+        """
+        calculates the avg median renter income in each zip.
+        multiplies number of renters by the weight of each tract contributing
+        to the current zip.
+        :return:
+        """
+        for z in self.tracts:
+            t_rent_income = 0
+            t_pop = 0
+            self.tracts[z]['mag_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
+            self.tracts[z]['max_renter_income'] = self.tracts[z].get('max_renter_income', 0)
+            for k,v in self.tracts[z].items():
+                if isinstance(k, int):
+                    income = v.get('HC03_VC14', 0)
+                    pop = v.get('HC03_VC01', 0)
+                    res_ratio = v.get('res_ratio', 1)
+                    if res_ratio == 0: res_ratio = 1
+                    t_rent_income += income * pop * res_ratio
+                    t_pop += pop * res_ratio
+            if t_pop == 0:
+                self.tracts[z]['avg_renter_income'] = 0.0
+            else:
+                self.tracts[z]['avg_renter_income'] = round(t_rent_income/t_pop, 0)
+
     def build_model(self):
         """
 
         :return:
         """
-        output = []  # [z, avg_renter_den, max_rent_den, avg_renter_inc, max_renter_inc]
+        output = []
         for z in self.tracts:
             line = [z]
-            total_med_renter_income = 0
-            n = 1
-            for k,v in self.tracts[z].items():
-                if k == 'zip_pk_id' or k == 'max_renter_income':
-                    continue
-                if k == 'avg_renter_density':
-                    line.append(self.tracts[z]['avg_renter_density'])
-                    continue
-                if k == 'max_renter_density':
-                    line.append(self.tracts[z]['max_renter_density'])
-                    continue
-                if 'HC03_VC14' not in self.tracts[z][k]:
-                    self.tracts[z][k]['HC03_VC14'] = 0
-                total_med_renter_income += self.tracts[z][k]['HC03_VC14']
-                n += 1
-            if n == 1:
-                self.tracts[z]['avg_renter_income'] = round(total_med_renter_income/(n), 2)
-            else:
-                self.tracts[z]['avg_renter_income'] = round(total_med_renter_income/(n-1), 2)
-            line.append(self.tracts[z]['avg_renter_income'])
-            line.append(self.tracts[z]['max_renter_income'])
+            line.append(self.tracts[z].get('avg_renter_density', 0.0))
+            line.append(self.tracts[z].get('max_renter_density', 0.0))
+            line.append(self.tracts[z].get('avg_renter_income', 0))
+            line.append(self.tracts[z].get('max_renter_income', 0))
             output.append(line)
         self.make_output(output, filename='model')
 
@@ -186,6 +194,7 @@ if __name__ == '__main__':
     myModel = Model()
     myModel.get_tracts()
     myModel.build_densities()
+    myModel.build_incomes()
     myModel.build_model()
     myModel.make_output(data=myModel.tracts, meth='pp')
     myModel.destroy()
