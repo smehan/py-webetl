@@ -1,8 +1,9 @@
-import json
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
+# -*- coding: UTF-8 -*-
 import csv
 import os
-import yaml
-import pprint
+
 from Gmap import map_api as goog
 
 def get_all_coords():

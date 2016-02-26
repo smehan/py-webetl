@@ -1,3 +1,5 @@
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
 # -*- coding: UTF-8 -*-
 from Pydb import Mysql
 import pprint
@@ -118,7 +120,7 @@ class Model():
                     res_ratio = v.get('res_ratio', 1)
                     if res_ratio == 0: res_ratio = 1
                     if renters > 0:
-                        current_den = ((renters * res_ratio)/occupied)
+                        current_den = renters/occupied
                     else:
                         current_den = 0.0
                     if self.tracts[z]['max_renter_density'] < current_den:

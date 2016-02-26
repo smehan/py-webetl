@@ -1,3 +1,5 @@
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
 # -*- coding: UTF-8 -*-
 from Pydb import Mysql
 import os

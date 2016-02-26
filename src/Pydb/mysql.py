@@ -1,4 +1,6 @@
-# -*- coding: UTF-8 -*-
+# Copyright (C) 2015-2016 Shawn Mehan <shawn dot mehan at shawnmehan dot com>
+#
+#  -*- coding: UTF-8 -*-
 """
 Class for creating a db object that connects to a defined mysql instance and
 permits various cursor executions. Uses PyMysql as the DBI driver. This is not the
