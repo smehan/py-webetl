@@ -30,7 +30,7 @@ class WalmartProdSearch(object):
     def __init__(self):
         init_logging()
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Job started and logging enabled")
+        self.logger.info("WalmartProdSearch object initialized and logging enabled")
 
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"walmart_config.yml"), "r") as fh:
             settings = yaml.load(fh)

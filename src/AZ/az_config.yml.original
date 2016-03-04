@@ -1,4 +1,10 @@
 ---
+## global parameters
+db_config: <Path to Pydb config>
+
+## debug
+debug: True
+
 [Credentials]
 access_key: <your access key>
 secret_key: <your secret key>
