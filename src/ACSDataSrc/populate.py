@@ -32,6 +32,12 @@ class Populate():
                     continue
                 tracts[r[0]] = self.get_tract_name(r[0])
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT * FROM census_tract_2010"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("census_tract_2010 table already exists. Skipping...")
+                return
             for t in tracts:
                 update_sql = "INSERT INTO `census_tract_2010` (`track_id`, `track_name`) VALUES (%s, %s)"
                 try:
@@ -62,6 +68,12 @@ class Populate():
                     continue
                 data.append([r[0], r[1], r[2], r[3], r[4], r[5]])  # TRACT,ZIP,RES_RATIO,BUS_RATIO,OTH_RATIO,TOT_RATIO
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT * FROM zip_tract_cw"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("zip_tract_cw table already exists. Skipping...")
+                return
             for r in data:
                 zip_id_sql = "SELECT `pk_id` FROM `zip` WHERE `zipcode`=%s"
                 cursor.execute(zip_id_sql, (r[1]))
@@ -88,8 +100,6 @@ class Populate():
                 except Exception as e:
                     print(r[0], e)
 
-
-
     def load_geo_details(self):
         geo = {}
         with open("data/US/US.txt") as fh:
@@ -97,6 +107,12 @@ class Populate():
             for r in reader:
                 geo[r[1]] = [{'city': r[2]}, {'county': r[5]}, {'state': r[3]}, {'lat': r[9]}, {'lon': r[10]}]
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT * FROM zip"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("Zip table already exists. Skipping...")
+                return
             for g in geo:
                 update_sql = "INSERT INTO `zip` (`city`, `county`, `state`, `lat`, `lon`, `zipcode`) " \
                              "VALUES (%s, %s, %s, %s, %s, %s)"
@@ -166,6 +182,12 @@ class Populate():
                               {'HC02_VC14': float(r[77])},
                               {'HC03_VC14': float(r[79])}]
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT * FROM S2503_ACS"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("S2503_ACS table already exists. Skipping...")
+                return
             for r in data:
                 get_track_id_sql = "SELECT `pk_id` FROM `census_tract_2010` AS c WHERE `track_id`=%s"
                 cursor.execute(get_track_id_sql, (r))
@@ -221,7 +243,7 @@ class Populate():
                     print(e)
                 self.acsdb.con.commit()
 
-    def load_S2503_moe(self):
+    def load_S2503_moe(self):  # TODO: Should refactor this to fold MOE into data load...Needs new ddl as well
         """
         Same general method as load_S2503 but this loads the MOE for each variable in the dataset.
         :return:
@@ -280,6 +302,12 @@ class Populate():
                               {'HC02_VC14_MOE': float(r[78])},
                               {'HC03_VC14_MOE': float(r[80])}]
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT HC01_VC01_MOE FROM S2501_ACS"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("S2501_ACS table already provisioned with MOEs. Skipping...")
+                return
             for r in data:
                 get_track_id_sql = "SELECT `pk_id` FROM `census_tract_2010` AS c WHERE `track_id`=%s"
                 cursor.execute(get_track_id_sql, (r))
@@ -381,22 +409,31 @@ class Populate():
                               {'HC02_VC15_MOE': float(r[84])},
                               {'HC03_VC15': float(r[85])},
                               {'HC03_VC15_MOE': float(r[86])},
+                              {'HC01_VC16': float(r[87])},
+                              {'HC01_VC16_MOE': float(r[88])},
+                              {'HC02_VC16': float(r[89])},
+                              {'HC02_VC16_MOE': float(r[90])},
+                              {'HC03_VC16': float(r[91])},
+                              {'HC03_VC16_MOE': float(r[92])},
                               {'HC01_VC36': float(r[147])},
                               {'HC01_VC36_MOE': float(r[148])},
                               {'HC02_VC36': float(r[149])},
                               {'HC02_VC36_MOE': float(r[150])},
                               {'HC03_VC36': float(r[151])},
-                              {'HC02_VC36_MOE': float(r[152])}]
+                              {'HC03_VC36_MOE': float(r[152])}]
         with self.acsdb.con.cursor() as cursor:
+            test_sql = "SELECT * FROM S2501_ACS"
+            cursor.execute(test_sql, ())
+            ret = cursor.fetchone()
+            if ret is not None:
+                print("S2501_ACS table already exists. Skipping...")
+                return
             for r in data:
                 get_track_id_sql = "SELECT `pk_id` FROM `census_tract_2010` AS c WHERE `track_id`=%s"
                 cursor.execute(get_track_id_sql, (r))
                 track_pk_id = cursor.fetchone()
                 if track_pk_id is None:
                     continue
-                test_sql = "SELECT * FROM S2501_ACS"
-                cursor.execute(test_sql, ())
-                ret = cursor.fetchone()
                 update_sql = "INSERT INTO `S2501_ACS` " \
                              "(`HC01_VC01`, `HC01_VC01_MOE`, `HC02_VC01`, `HC02_VC01_MOE`, `HC03_VC01`, `HC03_VC01_MOE`, " \
                              "`HC01_VC03`, `HC01_VC03_MOE`, `HC02_VC03`, `HC02_VC03_MOE`, `HC03_VC03`, `HC03_VC03_MOE`, " \
@@ -437,11 +474,11 @@ class Populate():
 
 if __name__ == '__main__':
     pop = Populate()
-    #pop.load_tracts()
-    #pop.load_S2503()
-    #pop.load_geo_details()
-    #pop.load_zip_tract_crosswalk()
-    #pop.load_S2503_moe()
+    pop.load_tracts()
+    pop.load_S2503()
+    pop.load_geo_details()
+    pop.load_zip_tract_crosswalk()
+    pop.load_S2503_moe()
     pop.load_S2501()
     pop.destroy()
 
