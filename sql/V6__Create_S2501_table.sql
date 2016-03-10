@@ -34,7 +34,7 @@ create table S2501_ACS (
     HC01_VC14_MOE float not null,
     HC02_VC14 float not null,
     HC02_VC14_MOE float not null,
-    HC03_VC07 float not null,
+    HC03_VC14 float not null,
     HC03_VC14_MOE float not null,
     HC01_VC15 float not null,
     HC01_VC15_MOE float not null,
