@@ -409,18 +409,18 @@ class Populate():
                               {'HC02_VC15_MOE': float(r[84])},
                               {'HC03_VC15': float(r[85])},
                               {'HC03_VC15_MOE': float(r[86])},
-                              {'HC01_VC16': float(r[87])},
-                              {'HC01_VC16_MOE': float(r[88])},
-                              {'HC02_VC16': float(r[89])},
-                              {'HC02_VC16_MOE': float(r[90])},
-                              {'HC03_VC16': float(r[91])},
-                              {'HC03_VC16_MOE': float(r[92])},
-                              {'HC01_VC36': float(r[147])},
-                              {'HC01_VC36_MOE': float(r[148])},
-                              {'HC02_VC36': float(r[149])},
-                              {'HC02_VC36_MOE': float(r[150])},
-                              {'HC03_VC36': float(r[151])},
-                              {'HC03_VC36_MOE': float(r[152])}]
+                              {'HC01_VC19': float(r[87])},
+                              {'HC01_VC19_MOE': float(r[88])},
+                              {'HC02_VC19': float(r[89])},
+                              {'HC02_VC19_MOE': float(r[90])},
+                              {'HC03_VC19': float(r[91])},
+                              {'HC03_VC19_MOE': float(r[92])},
+                              {'HC01_VC39': float(r[147])},
+                              {'HC01_VC39_MOE': float(r[148])},
+                              {'HC02_VC39': float(r[149])},
+                              {'HC02_VC39_MOE': float(r[150])},
+                              {'HC03_VC39': float(r[151])},
+                              {'HC03_VC39_MOE': float(r[152])}]
         with self.acsdb.con.cursor() as cursor:
             test_sql = "SELECT * FROM S2501_ACS"
             cursor.execute(test_sql, ())
@@ -442,8 +442,8 @@ class Populate():
                              "`HC01_VC06`, `HC01_VC06_MOE`, `HC02_VC06`, `HC02_VC06_MOE`, `HC03_VC06`, `HC03_VC06_MOE`, " \
                              "`HC01_VC14`, `HC01_VC14_MOE`, `HC02_VC14`, `HC02_VC14_MOE`, `HC03_VC14`, `HC03_VC14_MOE`, " \
                              "`HC01_VC15`, `HC01_VC15_MOE`, `HC02_VC15`, `HC02_VC15_MOE`, `HC03_VC15`, `HC03_VC15_MOE`, " \
-                             "`HC01_VC16`, `HC01_VC16_MOE`, `HC02_VC16`, `HC02_VC16_MOE`, `HC03_VC16`, `HC03_VC16_MOE`, " \
-                             "`HC01_VC36`, `HC01_VC36_MOE`, `HC02_VC36`, `HC02_VC36_MOE`, `HC03_VC36`, `HC03_VC36_MOE`, " \
+                             "`HC01_VC19`, `HC01_VC19_MOE`, `HC02_VC19`, `HC02_VC19_MOE`, `HC03_VC19`, `HC03_VC19_MOE`, " \
+                             "`HC01_VC39`, `HC01_VC39_MOE`, `HC02_VC39`, `HC02_VC39_MOE`, `HC03_VC39`, `HC03_VC39_MOE`, " \
                              "`track_pk_id`) " \
                              "VALUES " \
                              "(%s, %s, %s, %s, %s, %s, " \
@@ -464,8 +464,8 @@ class Populate():
                                                 data[r][24]['HC01_VC06'], data[r][25]['HC01_VC06_MOE'], data[r][26]['HC02_VC06'], data[r][27]['HC02_VC06_MOE'], data[r][28]['HC03_VC06'], data[r][29]['HC03_VC06_MOE'],
                                                 data[r][30]['HC01_VC14'], data[r][31]['HC01_VC14_MOE'], data[r][32]['HC02_VC14'], data[r][33]['HC02_VC14_MOE'], data[r][34]['HC03_VC14'], data[r][35]['HC03_VC14_MOE'],
                                                 data[r][36]['HC01_VC15'], data[r][37]['HC01_VC15_MOE'], data[r][38]['HC02_VC15'], data[r][39]['HC02_VC15_MOE'], data[r][40]['HC03_VC15'], data[r][41]['HC03_VC15_MOE'],
-                                                data[r][42]['HC01_VC16'], data[r][43]['HC01_VC16_MOE'], data[r][44]['HC02_VC16'], data[r][45]['HC02_VC16_MOE'], data[r][46]['HC03_VC16'], data[r][47]['HC03_VC16_MOE'],
-                                                data[r][48]['HC01_VC36'], data[r][49]['HC01_VC36_MOE'], data[r][50]['HC02_VC36'], data[r][51]['HC02_VC36_MOE'], data[r][52]['HC03_VC36'], data[r][53]['HC03_VC36_MOE'],
+                                                data[r][42]['HC01_VC19'], data[r][43]['HC01_VC19_MOE'], data[r][44]['HC02_VC19'], data[r][45]['HC02_VC19_MOE'], data[r][46]['HC03_VC19'], data[r][47]['HC03_VC19_MOE'],
+                                                data[r][48]['HC01_VC39'], data[r][49]['HC01_VC39_MOE'], data[r][50]['HC02_VC39'], data[r][51]['HC02_VC39_MOE'], data[r][52]['HC03_VC39'], data[r][53]['HC03_VC39_MOE'],
                                                 track_pk_id['pk_id']))
                 except Exception as e:
                     print(e)
