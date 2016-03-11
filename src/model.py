@@ -105,7 +105,7 @@ class Model():
     def _add_occupancy_features(self):
         """
         builds occupancy characteristics for occupied, owner-occupied, renter in each tract.
-        :return:
+        :return: adds occupancy as sub-dict in self.tracts[z][tract_pk_id]
         """
         with self.db.con.cursor() as cursor:
             for z in self.tracts:
@@ -144,7 +144,9 @@ class Model():
                     cursor.execute(select_sql, (k))
                     ret = cursor.fetchone()
                     if ret is not None:  # TODO: flip guard to None and output to logger
-                        pass
+                        self.tracts[z][k]['occupancy'] = ret
+                    else:
+                        self.tracts[z][k]['occupancy'] = {}
 
     def build_rental_housing_densities(self):
         """
@@ -155,30 +157,97 @@ class Model():
         """
         for z in self.tracts:
             t_rent = 0
+            t_h1_rent = 0
+            t_h2_rent = 0
+            t_h3_rent = 0
+            t_h4_rent = 0
             t_occ = 0
             self.tracts[z]['max_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
             self.tracts[z]['max_renter_income'] = self.tracts[z].get('max_renter_income', 0.0)
+            self.tracts[z]['max_h1_renter_density'] = self.tracts[z].get('max_h1_renter_density', 0.0)
+            self.tracts[z]['max_h2_renter_density'] = self.tracts[z].get('max_h2_renter_density', 0.0)
+            self.tracts[z]['max_h3_renter_density'] = self.tracts[z].get('max_h3_renter_density', 0.0)
+            self.tracts[z]['max_h4_renter_density'] = self.tracts[z].get('max_h4_renter_density', 0.0)
             for k,v in self.tracts[z].items():
                 if isinstance(k, int):
                     renters = v.get('HC03_VC01', 0)
+                    h1_renters = v['occupancy'].get('HC03_VC03', 0)
+                    h2_renters = v['occupancy'].get('HC03_VC04', 0)
+                    h3_renters = v['occupancy'].get('HC03_VC05', 0)
+                    h4_renters = v['occupancy'].get('HC03_VC06', 0)
                     occupied = v.get('HC01_VC01', 1)
-                    res_ratio = v.get('res_ratio', 1)
-                    if res_ratio == 0: res_ratio = 1
+                    if v.get('res_ratio', 1) > 0:
+                        res_ratio = v.get('res_ratio', 1)
+                    else:
+                        res_ratio = 1
                     if renters > 0:
                         current_den = renters/occupied
                     else:
                         current_den = 0.0
+                    t_h_renters = h1_renters + h2_renters + h3_renters + h4_renters
+                    if t_h_renters > 0:
+                        ren_norm = renters/(t_h_renters)
+                    else:
+                        ren_norm = 1
+                    h1_renters_norm = h1_renters*ren_norm
+                    h2_renters_norm = h2_renters*ren_norm
+                    h3_renters_norm = h3_renters*ren_norm
+                    h4_renters_norm = h4_renters*ren_norm
+                    if h1_renters_norm > 0:
+                        current_h1_den = h1_renters_norm/occupied
+                    else:
+                        current_h1_den = 0.0
+                    if h2_renters_norm > 0:
+                        current_h2_den = h2_renters_norm/occupied
+                    else:
+                        current_h2_den = 0.0
+                    if h3_renters_norm > 0:
+                        current_h3_den = h3_renters_norm/occupied
+                    else:
+                        current_h3_den = 0.0
+                    if h4_renters_norm > 0:
+                        current_h4_den = h4_renters_norm/occupied
+                    else:
+                        current_h4_den = 0.0
                     if self.tracts[z]['max_renter_density'] < current_den:
                         self.tracts[z]['max_renter_density'] = round(current_den, 2)
                         self.tracts[z]['max_renter_income'] = round(v.get('HC03_VC14', 0.0), 0)
+                    if self.tracts[z]['max_h1_renter_density'] < current_h1_den:
+                        self.tracts[z]['max_h1_renter_density'] = round(current_h1_den, 2)
+                    if self.tracts[z]['max_h2_renter_density'] < current_h2_den:
+                        self.tracts[z]['max_h2_renter_density'] = round(current_h2_den, 2)
+                    if self.tracts[z]['max_h3_renter_density'] < current_h3_den:
+                        self.tracts[z]['max_h3_renter_density'] = round(current_h3_den, 2)
+                    if self.tracts[z]['max_h4_renter_density'] < current_h4_den:
+                        self.tracts[z]['max_h4_renter_density'] = round(current_h4_den, 2)
                     t_rent += renters * res_ratio
+                    t_h1_rent += h1_renters_norm * res_ratio
+                    t_h2_rent += h2_renters_norm * res_ratio
+                    t_h3_rent += h3_renters_norm * res_ratio
+                    t_h4_rent += h4_renters_norm * res_ratio
                     t_occ += occupied * res_ratio
             if t_rent == 0:
                 self.tracts[z]['avg_renter_density'] = 0.0
             else:
                 self.tracts[z]['avg_renter_density'] = round(t_rent/t_occ, 2)
+            if t_h1_rent == 0:
+                self.tracts[z]['avg_h1_renter_density'] = 0.0
+            else:
+                self.tracts[z]['avg_h1_renter_density'] = round(t_h1_rent/t_occ, 2)
+            if t_h2_rent == 0:
+                self.tracts[z]['avg_h2_renter_density'] = 0.0
+            else:
+                self.tracts[z]['avg_h2_renter_density'] = round(t_h2_rent/t_occ, 2)
+            if t_h3_rent == 0:
+                self.tracts[z]['avg_h3_renter_density'] = 0.0
+            else:
+                self.tracts[z]['avg_h3_renter_density'] = round(t_h3_rent/t_occ, 2)
+            if t_h4_rent == 0:
+                self.tracts[z]['avg_h4_renter_density'] = 0.0
+            else:
+                self.tracts[z]['avg_h4_renter_density'] = round(t_h4_rent/t_occ, 2)
         #self.make_output(output)
-        #self.make_output(self.tracts, meth='pp')
+        self.make_output(self.tracts, meth='pp')
 
     def build_incomes(self):
         """
@@ -190,7 +259,7 @@ class Model():
         for z in self.tracts:
             t_rent_income = 0
             t_pop = 0
-            self.tracts[z]['mag_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
+            self.tracts[z]['max_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
             self.tracts[z]['max_renter_income'] = self.tracts[z].get('max_renter_income', 0)
             for k,v in self.tracts[z].items():
                 if isinstance(k, int):
