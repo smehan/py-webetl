@@ -247,7 +247,7 @@ class Model():
             else:
                 self.tracts[z]['avg_h4_renter_density'] = round(t_h4_rent/t_occ, 2)
         #self.make_output(output)
-        self.make_output(self.tracts, meth='pp')
+        #self.make_output(self.tracts, meth='pp')
 
     def build_incomes(self):
         """
@@ -287,6 +287,14 @@ class Model():
             line.append(self.tracts[z].get('max_renter_density', 0.0))
             line.append(self.tracts[z].get('avg_renter_income', 0))
             line.append(self.tracts[z].get('max_renter_income', 0))
+            line.append(self.tracts[z].get('avg_h1_renter_density', 0))
+            line.append(self.tracts[z].get('max_h1_renter_density', 0))
+            line.append(self.tracts[z].get('avg_h2_renter_density', 0))
+            line.append(self.tracts[z].get('max_h2_renter_density', 0))
+            line.append(self.tracts[z].get('avg_h3_renter_density', 0))
+            line.append(self.tracts[z].get('max_h3_renter_density', 0))
+            line.append(self.tracts[z].get('avg_h4_renter_density', 0))
+            line.append(self.tracts[z].get('max_h4_renter_density', 0))
             output.append(line)
         self.make_output(output, filename='model')
 
