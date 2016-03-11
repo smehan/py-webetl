@@ -28,6 +28,7 @@ class Model():
         self._build_tracts()
         self._add_median_incomes()
         self._add_housing()
+        self._add_occupancy_features()
 
     def _get_zips(self):
         """
@@ -84,7 +85,7 @@ class Model():
         """
         with self.db.con.cursor() as cursor:
             for z in self.tracts:
-                for k,v in self.tracts[z].items():
+                for k, v in self.tracts[z].items():
                     if k == 'zip_pk_id':
                         continue
                     select_sql = "SELECT `HC01_VC01`, `HC01_VC01_MOE`, " \
@@ -93,7 +94,7 @@ class Model():
                                  "WHERE `track_pk_id`=%s"
                     cursor.execute(select_sql, (k))
                     ret = cursor.fetchone()
-                    if ret is not None:
+                    if ret is not None:  # TODO: Flip this guard and warn in logger for None
                         self.tracts[z][k]['HC01_VC01'] = ret['HC01_VC01']
                         self.tracts[z][k]['HC02_VC01'] = ret['HC02_VC01']
                         self.tracts[z][k]['HC03_VC01'] = ret['HC03_VC01']
@@ -101,7 +102,51 @@ class Model():
                         self.tracts[z][k]['HC02_VC01_MOE'] = ret['HC02_VC01_MOE']
                         self.tracts[z][k]['HC03_VC01_MOE'] = ret['HC03_VC01_MOE']
 
-    def build_densities(self):
+    def _add_occupancy_features(self):
+        """
+        builds occupancy characteristics for occupied, owner-occupied, renter in each tract.
+        :return:
+        """
+        with self.db.con.cursor() as cursor:
+            for z in self.tracts:
+                for k, v in self.tracts[z].items():
+                    if k == 'zip_pk_id':
+                        continue
+                    select_sql = "SELECT HC01_VC01, HC01_VC01_MOE, " \
+                                 "HC02_VC01, HC02_VC01_MOE, " \
+                                 "HC03_VC01, HC03_VC01_MOE, " \
+                                 "HC01_VC03, HC01_VC03_MOE, " \
+                                 "HC02_VC03, HC02_VC03_MOE, " \
+                                 "HC03_VC03, HC03_VC03_MOE, " \
+                                 "HC01_VC04, HC01_VC04_MOE, " \
+                                 "HC02_VC04, HC02_VC04_MOE, " \
+                                 "HC03_VC04, HC03_VC04_MOE, " \
+                                 "HC01_VC05, HC01_VC05_MOE, " \
+                                 "HC02_VC05, HC02_VC05_MOE, " \
+                                 "HC03_VC05, HC03_VC05_MOE, " \
+                                 "HC01_VC06, HC01_VC06_MOE, " \
+                                 "HC02_VC06, HC02_VC06_MOE, " \
+                                 "HC03_VC06, HC03_VC06_MOE, " \
+                                 "HC01_VC14, HC01_VC14_MOE, " \
+                                 "HC02_VC14, HC02_VC14_MOE, " \
+                                 "HC03_VC14, HC03_VC14_MOE, " \
+                                 "HC01_VC15, HC01_VC15_MOE, " \
+                                 "HC02_VC15, HC02_VC15_MOE, " \
+                                 "HC03_VC15, HC03_VC15_MOE, " \
+                                 "HC01_VC19, HC01_VC19_MOE, " \
+                                 "HC02_VC19, HC02_VC19_MOE, " \
+                                 "HC03_VC19, HC03_VC19_MOE, " \
+                                 "HC01_VC39, HC01_VC39_MOE, " \
+                                 "HC02_VC39, HC02_VC39_MOE, " \
+                                 "HC03_VC39, HC03_VC39_MOE " \
+                                 "FROM S2501_ACS " \
+                                 "WHERE track_pk_id=%s"
+                    cursor.execute(select_sql, (k))
+                    ret = cursor.fetchone()
+                    if ret is not None:  # TODO: flip guard to None and output to logger
+                        pass
+
+    def build_rental_housing_densities(self):
         """
         calculates the density of renters/total occupied units in each zip.
         multiplies number of renters/occupiers by the weight of each tract contributing
@@ -162,7 +207,8 @@ class Model():
 
     def build_model(self):
         """
-
+        Builds up a derived dataset of relevant features from ACS info pulled or built in other methods.
+        Purpose is specific to data needed for this particular output.
         :return:
         """
         output = []
@@ -193,7 +239,7 @@ class Model():
 if __name__ == '__main__':
     myModel = Model()
     myModel.get_tracts()
-    myModel.build_densities()
+    myModel.build_rental_housing_densities()
     myModel.build_incomes()
     myModel.build_model()
     myModel.make_output(data=myModel.tracts, meth='pp')
