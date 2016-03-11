@@ -109,3 +109,4 @@ az_config.yaml
 /src/Gmap/google_config.yaml
 /src/Pydb/mysql_config.yaml
 
+.Rproj.user
