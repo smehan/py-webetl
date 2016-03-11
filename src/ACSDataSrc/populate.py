@@ -46,7 +46,8 @@ class Populate():
                     pass
                 self.acsdb.con.commit()
 
-    def get_tract_name(self, tract_id):
+    @staticmethod
+    def get_tract_name(tract_id):
         """Pulls out the Census Tract Name from up to the last 6 digits in the track_id.
         This is not finished since it is taking 020100 and yielding 0201.00 and it should
         drop the initial 0 and for suffixes with no information it should drop 00.
@@ -98,7 +99,7 @@ class Populate():
                     cursor.execute(insert_sql, (track_pk_id['pk_id'], zip_pk_id['pk_id'], r[2], r[3], r[4], r[5]))
                     self.acsdb.con.commit()
                 except Exception as e:
-                    print(r[0], e)
+                    print("tract %s attempted to map into zip %s and not found - %s" % (r[0], r[1], e))
 
     def load_geo_details(self):
         geo = {}
@@ -397,30 +398,30 @@ class Populate():
                               {'HC02_VC06_MOE': float(r[30])},
                               {'HC03_VC06': float(r[31])},
                               {'HC03_VC06_MOE': float(r[32])},
-                              {'HC01_VC14': float(r[75])},
-                              {'HC01_VC14_MOE': float(r[76])},
-                              {'HC02_VC14': float(r[77])},
-                              {'HC02_VC14_MOE': float(r[78])},
-                              {'HC03_VC14': float(r[79])},
-                              {'HC03_VC14_MOE': float(r[80])},
-                              {'HC01_VC15': float(r[81])},
-                              {'HC01_VC15_MOE': float(r[82])},
-                              {'HC02_VC15': float(r[83])},
-                              {'HC02_VC15_MOE': float(r[84])},
-                              {'HC03_VC15': float(r[85])},
-                              {'HC03_VC15_MOE': float(r[86])},
-                              {'HC01_VC19': float(r[87])},
-                              {'HC01_VC19_MOE': float(r[88])},
-                              {'HC02_VC19': float(r[89])},
-                              {'HC02_VC19_MOE': float(r[90])},
-                              {'HC03_VC19': float(r[91])},
-                              {'HC03_VC19_MOE': float(r[92])},
-                              {'HC01_VC39': float(r[147])},
-                              {'HC01_VC39_MOE': float(r[148])},
-                              {'HC02_VC39': float(r[149])},
-                              {'HC02_VC39_MOE': float(r[150])},
-                              {'HC03_VC39': float(r[151])},
-                              {'HC03_VC39_MOE': float(r[152])}]
+                              {'HC01_VC14': float(r[51])},
+                              {'HC01_VC14_MOE': float(r[52])},
+                              {'HC02_VC14': float(r[53])},
+                              {'HC02_VC14_MOE': float(r[54])},
+                              {'HC03_VC14': float(r[55])},
+                              {'HC03_VC14_MOE': float(r[56])},
+                              {'HC01_VC15': float(r[57])},
+                              {'HC01_VC15_MOE': float(r[58])},
+                              {'HC02_VC15': float(r[59])},
+                              {'HC02_VC15_MOE': float(r[60])},
+                              {'HC03_VC15': float(r[61])},
+                              {'HC03_VC15_MOE': float(r[62])},
+                              {'HC01_VC19': float(r[81])},
+                              {'HC01_VC19_MOE': float(r[82])},
+                              {'HC02_VC19': float(r[83])},
+                              {'HC02_VC19_MOE': float(r[84])},
+                              {'HC03_VC19': float(r[85])},
+                              {'HC03_VC19_MOE': float(r[86])},
+                              {'HC01_VC39': float(r[183])},
+                              {'HC01_VC39_MOE': float(r[184])},
+                              {'HC02_VC39': float(r[185])},
+                              {'HC02_VC39_MOE': float(r[186])},
+                              {'HC03_VC39': float(r[187])},
+                              {'HC03_VC39_MOE': float(r[188])}]
         with self.acsdb.con.cursor() as cursor:
             test_sql = "SELECT * FROM S2501_ACS"
             cursor.execute(test_sql, ())
@@ -475,9 +476,9 @@ class Populate():
 if __name__ == '__main__':
     pop = Populate()
     pop.load_tracts()
-    pop.load_S2503()
     pop.load_geo_details()
     pop.load_zip_tract_crosswalk()
+    pop.load_S2503()
     pop.load_S2503_moe()
     pop.load_S2501()
     pop.destroy()
