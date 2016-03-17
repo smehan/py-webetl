@@ -153,6 +153,12 @@ class Model():
         calculates the density of renters/total occupied units in each zip.
         multiplies number of renters/occupiers by the weight of each tract contributing
         to the current zip.
+        Firstly, get raw data for h1-4 renter numbers, and renters total units as well as total occupied
+        units in tract. Get res_ratio, the fraction of that tract which is contributing to the present zip.
+        Then normalize all of the h1-4 with the total renters to facilitate comparisons on same scale.
+        If normalization is non-zero, calculate the normalized renter density for that group. Check to
+        see if this is the max for the zip and store if so. Caclulate the contribution from this tract and
+        add proportion element to total for the zip. Finally, calculate and store the avg for the zip.
         :return:
         """
         for z in self.tracts:
