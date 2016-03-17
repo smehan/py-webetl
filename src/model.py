@@ -154,7 +154,7 @@ class Model():
         multiplies number of renters/occupiers by the weight of each tract contributing
         to the current zip.
         Firstly, get raw data for h1-4 renter numbers, and renters total units as well as total occupied
-        units in tract. Get res_ratio, the fraction of that tract which is contributing to the present zip.
+        units in tract. Get res_ratio, the fraction of that tract which is contributing to the current zip.
         Then normalize all of the h1-4 with the total renters to facilitate comparisons on same scale.
         If normalization is non-zero, calculate the normalized renter density for that group. Check to
         see if this is the max for the zip and store if so. Caclulate the contribution from this tract and
@@ -168,12 +168,14 @@ class Model():
             t_h3_rent = 0
             t_h4_rent = 0
             t_occ = 0
+            rent_pop = 0
             self.tracts[z]['max_renter_density'] = self.tracts[z].get('max_renter_density', 0.0)
             self.tracts[z]['max_renter_income'] = self.tracts[z].get('max_renter_income', 0.0)
             self.tracts[z]['max_h1_renter_density'] = self.tracts[z].get('max_h1_renter_density', 0.0)
             self.tracts[z]['max_h2_renter_density'] = self.tracts[z].get('max_h2_renter_density', 0.0)
             self.tracts[z]['max_h3_renter_density'] = self.tracts[z].get('max_h3_renter_density', 0.0)
             self.tracts[z]['max_h4_renter_density'] = self.tracts[z].get('max_h4_renter_density', 0.0)
+            self.tracts[z]['renter_pop_est'] = self.tracts[z].get('renter_pop_est', 0.0)
             for k,v in self.tracts[z].items():
                 if isinstance(k, int):
                     renters = v.get('HC03_VC01', 0)
@@ -232,10 +234,15 @@ class Model():
                     t_h3_rent += h3_renters_norm * res_ratio
                     t_h4_rent += h4_renters_norm * res_ratio
                     t_occ += occupied * res_ratio
+                    rent_pop += h1_renters_norm * res_ratio + \
+                                h2_renters_norm * res_ratio * 2 + \
+                                h3_renters_norm * res_ratio * 3 + \
+                                h4_renters_norm * res_ratio * 4
             if t_rent == 0:
                 self.tracts[z]['avg_renter_density'] = 0.0
             else:
                 self.tracts[z]['avg_renter_density'] = round(t_rent/t_occ, 2)
+                self.tracts[z]['renter_pop_est'] = round(rent_pop, 0)
             if t_h1_rent == 0:
                 self.tracts[z]['avg_h1_renter_density'] = 0.0
             else:
@@ -301,6 +308,7 @@ class Model():
             line.append(self.tracts[z].get('max_h3_renter_density', 0))
             line.append(self.tracts[z].get('avg_h4_renter_density', 0))
             line.append(self.tracts[z].get('max_h4_renter_density', 0))
+            line.append(self.tracts[z].get('renter_pop_est', 0))
             output.append(line)
         self.make_output(output, filename='model')
 

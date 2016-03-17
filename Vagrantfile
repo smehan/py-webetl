@@ -53,6 +53,7 @@ Vagrant.configure(2) do |config|
   # View the documentation for the provider you are using for more
   # information on available options.
     config.vm.provider "virtualbox" do |vb|
+  #  vb.gui = true
 	vb.memory = "2404"
     	vb.cpus = "2"
     end
@@ -72,12 +73,7 @@ Vagrant.configure(2) do |config|
   #   sudo apt-get install -y apache2
    SHELL
 
-  #
-  # Run Ansible from the Vagrant Host
-  #
-  config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/playbook.yml"
-  end
+
 end
 
 
