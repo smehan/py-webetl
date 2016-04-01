@@ -49,8 +49,7 @@ class WalmartProdSearch(object):
         self.site_url = settings['site_url']
         self.page_url = settings['page_url']
         self.base_url = strip_final_slash(get_base_url(self.site_url))
-        self.az = AZ()
-
+        #self.az = AZ()
 
     def destroy(self):
         """
@@ -94,13 +93,50 @@ class WalmartProdSearch(object):
                                            delimiter="\t")
                 outwriter.writeheader()
 
+    def _persist_new_match(self, item_id):
+        """
+        Method takes walmart item id and finds the match_cw row with that item id.
+        If none, inserts a new row as this is a new product.
+        :param item_id:
+        :return:
+        """
+        with self.db.con.cursor() as cursor:
+            #Find the selected product from walmart in the existing product TABLE
+            select_sql = "SELECT pk_id " \
+                         "FROM walmart_product " \
+                         "WHERE item_id=%s"
+            cursor.execute(select_sql, (item_id))
+            ret = cursor.fetchone()
+            wal_id = ret['pk_id']
+            #Find the corresponding row in match_cw
+            select_sql = "SELECT pk_id " \
+                         "FROM match_cw " \
+                         "WHERE wal_pk_id=%s"
+            cursor.execute(select_sql, (wal_id))
+            ret = cursor.fetchone()
+            # didn't get a match row so make one
+            if ret is None:
+                insert_sql = "INSERT INTO match_cw " \
+                             "(wal_pk_id, last_update) " \
+                             "VALUES " \
+                             "(%s, now())"
+                try:
+                    cursor.execute(insert_sql, (wal_id))
+                    self.db.con.commit()
+                except:
+                    self.logger.exception('Failed to insert new walmart product into match.')
+            else:
+                self.logger.info('Product %s is already in match table.' % (wal_id))
+
     def process_output(self, data):
         with self.db.con.cursor() as cursor:
+            #Try to find the selected product from walmart in the existing product TABLE
             select_sql = "SELECT pk_id, price " \
                          "FROM walmart_product " \
                          "WHERE item_id=%s"
             cursor.execute(select_sql, (data['item_id']))
             ret = cursor.fetchone()
+            # If none found, it's a new product so push it in
             if ret is None:
                 insert_sql = "INSERT INTO walmart_product " \
                              "(price, url, img, item_id, " \
@@ -119,6 +155,7 @@ class WalmartProdSearch(object):
                     self.db.con.commit()
                 except:
                     self.logger.exception('Failed to insert new walmart product.')
+            # Otherwise, it's already been found, so update the price and time stamp
             elif data['price'] != ret['price']:
                 update_sql = "UPDATE walmart_product " \
                              "SET price=%s, last_read=now(), " \
@@ -134,17 +171,20 @@ class WalmartProdSearch(object):
                     self.db.con.commit()
                 except:
                     self.logger.exception('Failed to update walmart product.')
+            # Otherwise, it's already been found and price is same so update time stamp
             else:
                 update_sql = "UPDATE walmart_product " \
                              "SET last_read=now()" \
                              "WHERE pk_id=%s"
                 cursor.execute(update_sql, (ret['pk_id']))
                 self.db.con.commit()
-        with open(self.outfile, 'a', encoding='utf-8') as fh:
-            outwriter = csv.DictWriter(fh,
-                                       fieldnames=self.fieldnames,
-                                       delimiter="\t")
-            outwriter.writerow(data)
+            # insert into the match_cw table accordingly
+            self._persist_new_match(data['item_id'].strip())
+        # with open(self.outfile, 'a', encoding='utf-8') as fh:
+        #     outwriter = csv.DictWriter(fh,
+        #                                fieldnames=self.fieldnames,
+        #                                delimiter="\t")
+        #     outwriter.writerow(data)
 
     def get_dollar_amount(self, f):
         if isinstance(f, str):
@@ -216,9 +256,9 @@ class WalmartProdSearch(object):
                     continue
                 entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
                 entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
-                entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['title'], 'Toys')
-                entry['net'] = self.get_net(entry)
-                entry['roi'] = self.get_roi(entry)
+                #entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['title'], 'Toys')
+                #entry['net'] = self.get_net(entry)
+                #entry['roi'] = self.get_roi(entry)
                 self.process_output(entry)
 
     def next_page_url(self, url):
@@ -254,12 +294,24 @@ class WalmartProdSearch(object):
         return page
 
     def _is_recent(self, t):
+        """
+        private method to check whether timestamp is within default time period.
+        :param t: timestamp
+        :return: boolean of whether it is within default period, true is within period.
+        """
         if (datetime.datetime.now() - t) < datetime.timedelta(days=1):
             return True
         else:
             return False
 
     def get_target(self):
+        """
+        method to find the next node at walmart to search for products. If there is no
+        target that has been more than 24 hours since being searched, will return None.
+        Otherwise, takes the first returned and updates the timestamp to now to reset
+        its priority for search.
+        :return: 'node' is the cat component of the url to hit at walmart.
+        """
         with self.db.con.cursor() as cursor:
             select_sql = "select node, last_read from walmart_node ORDER BY last_read ASC"
             cursor.execute(select_sql)
