@@ -96,7 +96,7 @@ class AZ(object):
 
     def _get_attrs(self):
         (r, w, u, i) = (None, None, None, None)
-        if self.product['asin'] is not None:
+        if self.product.get('asin', None) is not None:
             try:
                 p = self.amazon.lookup(ItemId=self.product['asin'])
                 r = int(p.sales_rank)
@@ -158,6 +158,8 @@ class AZ(object):
         self.product = {}
         self.product['az_weight'] = self.default_weight
         self.product['az_price'] = 0.0
+        self.product['avg_review'] = 0
+        self.product['num_reviews'] = 0
 
     def match_products(self):
         """
@@ -171,6 +173,8 @@ class AZ(object):
             self._init_prod_dict()
             self.product['name'] = new_prods[k]['title']
             self.find_best_match(self.product['name'])
+            if self.product.get('asin', None) is None:
+                continue
             self._persist_product(self.product, k)
 
     def _get_unmatched_products(self):
@@ -275,6 +279,7 @@ class AZ(object):
             self.logger.warn("Attempt to persist empty product!")
             return
         with self.db.con.cursor() as cursor:
+            (az_id, az_price) = (0, 0.0)  # declare as a wider scope var to track through entire method
             select_sql = "SELECT pk_id, price " \
                          "FROM az_product " \
                          "WHERE asin=%s"
@@ -294,11 +299,11 @@ class AZ(object):
                                                 product['avg_review'],
                                                 product['img'],
                                                 product['num_reviews'],
-                                                product['az_price'],
+                                                product.get('az_price', 0.0),
                                                 product['az_sales_rank'],
-                                                1.00,  # no shipping cost or upc
+                                                product.get('shipping_cost', 1.00),  # no shipping cost or upc
                                                 product['name'],
-                                                '',
+                                                product.get('upc',''),
                                                 product['az_url'],
                                                 product['az_weight']))
                     self.db.con.commit()
@@ -308,6 +313,11 @@ class AZ(object):
                          "WHERE asin=%s"
                     cursor.execute(select_sql, (product['asin']))
                     ret = cursor.fetchone()
+                    az_id = ret.get('pk_id', None)
+                    if az_id is None:
+                        self.logger.warn("Error in inserting new az_product.")
+                        return
+                    az_price = ret.get('price', 0.0)
                 except:
                     self.logger.exception('Failed to insert new az product: %s.' % product['asin'])
                     return
