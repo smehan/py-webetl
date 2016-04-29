@@ -78,7 +78,6 @@ class WikiScraper(object):
         except Exception as e:
             self.logger.error("Error with {} and extraction stopped...".format(url))
             return
-        tmp = self._extract_leaf(self.get_page('https://en.wikipedia.org/wiki/Racine,_Wisconsin'))
         topcats = self._build_cats(page, lvl='us')
         statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
         countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
