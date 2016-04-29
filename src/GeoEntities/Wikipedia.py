@@ -2,19 +2,23 @@
 #
 #  -*- coding: utf-8 -*-
 
+# standard libs
 import re
+import os
+import time
+import datetime
+import logging
+import csv
+import itertools
+import pprint
+# 3rd party
 import yaml
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from bs4 import BeautifulSoup
+# application libs
 from HTTPutils import get_base_url, strip_final_slash, imitate_user, build_search_url
 from loggerUtils import init_logging
-#from Pydb import Mysql
-import logging
-import csv
-import os
-import time
-import datetime
 
 
 
@@ -59,6 +63,12 @@ class WikiScraper(object):
         self.driver.quit()
 
     def start_scrape(self):
+        """
+        Fetches top url, builds up recursively the leaves of each level of the hierarchy, adding
+        that additional level each trip, until it has the leaves. Then passes all the leaves to the
+        harvester to extract the content.
+        :return:
+        """
         self.run = True  # initialize run
         url = self.top_url
         try:
@@ -66,10 +76,14 @@ class WikiScraper(object):
         except Exception as e:
             self.logger.error("Error with {} and extraction stopped...".format(url))
             return
+        tmp = self._extract_leaf(self.get_page('https://en.wikipedia.org/wiki/Friendship,_Wisconsin'))
         topcats = self._build_cats(page, lvl='us')
-        statecats = [self._build_cats(self.get_page(c[1]), lvl='state') for c in topcats]
-        countycats = self._build_cats(self.get_page() , lvl='county')
- # go get links for each county and return full list. will then build a method to scrape each leaf.
+        statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
+        countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
+        leaves = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[3]), lvl='county') for c in countycats]))
+        pprint.pprint(leaves)
+        for leaf in leaves:
+            self._extract_leaf(self.get_page(leaf))
 
     def _build_cats(self, page, lvl=None):
         """parse all the top level links and build a dictionary of containers to walk
@@ -77,30 +91,69 @@ class WikiScraper(object):
         :param lvl: string indicating what level of category container we are at.
         :return: a dict
         """
+        # no level passed, error.
         if lvl is None:
             self.run = False
             return
+        # no page found, return.
         if page.find("div", {"class": "noarticletext"}):
             self.run = False
             return
+        # top level of US, lists place type containers
         elif lvl == 'us':
             block = page.find("div", {"class": "mw-category-group"})  # first block in the container page, which is US
             links = [(e.contents[0].split(" ")[0], "".join((self.base_url, e.attrs['href']))) for e in block.find_all("a", {"class": "CategoryTreeLabel"})]
             return links
+        # place type level of US, lists all states with that place type
+        elif lvl == 'type':  # TODO: need to replace this strcuture with a yield to remove intermediate list
+            links = []
+            block = page.find_all("div", {"class": "CategoryTreeItem"})
+            for e in block:
+                type, state = self._parse_link_title(e.a.contents[0], 'state')
+                links.append((type, state, "".join((self.base_url, e.a.attrs['href']))))
+            return links
+        # state level of US, lists all counties with that place type
         elif lvl == 'state':
             links = []
             block = page.find_all("div", {"class": "CategoryTreeItem"})
             for e in block:
-                type, locale = self._parse_link_title(e.a.contents[0])
-                links.append((type, locale, "".join((self.base_url, e.a.attrs['href']))))
+                type, county, state = self._parse_link_title(e.a.contents[0], 'county')
+                links.append((type, county, state, "".join((self.base_url, e.a.attrs['href']))))
+            return links
+        # county level of US, lists all counties of a state with that place type
+        elif lvl == 'county':
+            links = []
+            try:
+                other_info = re.search(r'"(.*)"', page.find("div", {"id": "mw-pages"}).h2.contents[1]).group(1)
+            except:
+                try:
+                    other_info = re.search(r':(.*)$', page.find("h1", {"id": "firstHeading"}).contents[0]).group(1)
+                except:
+                    other_info = None
+            type, county, state = self._parse_link_title(other_info, 'county')
+            block = page.find_all("a", string=re.compile(r'^[\w ]+, [\w ]+$'))
+            for e in block:
+                if ' in ' in e.contents[0]:  # to skip the /wiki/Category link in the page
+                    continue
+                place = self._parse_link_title(e.contents[0], 'place')
+                links.append((type, place, county, state, "".join((self.base_url, e.attrs['href']))))
             return links
 
-    def _parse_link_title(self, text):
+    def _parse_link_title(self, text, level):
         """
+        computes 1,2,3 components based on level.
+        If search failed to find target text, return filler strings.
         :param text: link text
-        :return: components of type, state
+        :return: components of type, (county), state
         """
-        return self._get_place_type(text), self._get_state(text)
+        if text is None:
+            return 'NA', 'NA', 'NA'
+        if level == 'state':
+            return self._get_place_type(text), self._get_state(text)
+        elif level == 'county':
+            return self._get_place_type(text), self._get_county(text), self._get_state(text)
+        elif level == 'place':
+            return self._get_place(text)
 
     def _get_place_type(self, text):
         """
@@ -112,14 +165,14 @@ class WikiScraper(object):
                  ('HAMLET', 'HAMLETS'), ('CITY', 'CITIES'), ('BORO', 'BOROUGH'),
                  ('HISTORIC', 'FORMER'), ('CDP', 'CENSUS')]
         for t in types:
-            if t[1] in text.upper():
+            if t[1] in text.upper().split(" ")[0]:
                 return t[0]
         return None
 
     def _get_state(self, text):
         """ parse a string to determine which state it contains
         :param text: string to parse
-        :return: a state abbreviation
+        :return: a state abbreviation or None
         """
         states = [('AL', 'ALABAMA'), ('AK', 'ALASKA'), ('AR', 'ARKANSAS'), ('AZ', 'ARIZONA'),
                   ('CA', 'CALIFORNIA'), ('CO', 'COLORADO'), ('CT', 'CONNECTICUT'), ('DE', 'DELAWARE'),
@@ -137,27 +190,27 @@ class WikiScraper(object):
                 return s[0]
         return None
 
-    def scrape(self, pc=None, change_url=None):
+    def _get_county(self, text):
+        """ parse a string to extract which county it contains
+        :param text: string to parse
+        :return: a county string or None
         """
-        :param change_url is the changing part of wider site url, if there
-        are multiple sections to hit.
-        :param pc is an integer indicating where to start with a paginated url.
+        try:
+            county = re.search(r'in ([\w ]+) County,', text).group(1)
+            return county.upper()
+        except:
+            return None
+
+    def _get_place(self, text):
+        """ parse a string to extract the place name it contains
+        :param text: string to parse form of 'Williamston, North Carolina'
+        :return: a place name as string or None
         """
-        self.run = True  # initialization of a site/section.
-        if pc is not None:
-            self.pc = pc
-        while self.run is True:
-            url = self.next_page_url(build_search_url(self.site_url, change_url))
-            try:
-                page = self.get_page(url)
-            except Exception as e:
-                self.logger.error("Error with %s and skipped" % url)
-                continue
-            self.get_list(page)
-        if change_url is None:
-            self.logger.info("Site %s finished" % self.site_url)
-        else:
-            self.logger.info("Section %s finished" % change_url)
+        try:
+            place = re.search(r'([\w ]+),', text).group(1)
+            return place.upper()
+        except:
+            return None
 
     def init_output(self):
         if not os.path.exists(self.outfile):
@@ -174,49 +227,66 @@ class WikiScraper(object):
                                        delimiter="\t")
         outwriter.writerow(data)
 
-    def get_list(self, page):
+    def _extract_leaf(self, page):
         """
         method takes page from source and parses out items to save.
         :param page: bs4 object returned from get_page
-        :return:
+        :return: entry for output
         """
-        imitate_user(0.5)
-        if page.find(string=re.compile(r'We found 0 results')):
+        # no page found, return.
+        if page.find("div", {"class": "noarticletext"}):
             self.run = False
             return
-        elif not page.find("div", {"id": "summary"}):
-            self.run = False
+        entry = {}
+        try:
+            block = page.find("table", {"class": "geography"})
+            entry['placename']
+            entry['place-url']
+            entry['placetype']
+            entry['county']
+            entry['county-url']
+            entry['state']
+            entry['state-url']
+            entry['location-svg']
+            entry['geohack-url']
+            entry['lat'] = block.find('span', {'class': 'latitude'})
+            entry['long'] = block.find('span', {'class': 'longitude'})
+            entry['total-area']
+            entry['land-area']
+            entry['water-area']
+            entry['elevation-ft']
+            entry['elevation-m']
+            entry['pop-2010']
+            entry['density-2010-imp']
+            entry['density-2010-m']
+            entry['zips'] = block.find('span', {'class': 'adr'}) # this is a list of DDDDD-DDDDDs
+            entry['area-codes']
+            entry['FIPS']
+            entry['GNIS']
+            entry['place-www']
+            self.process_output(entry)
+        except:
             return
-        else:
-            entries = page.find("div", {"id": "summary"})
-        for e in entries:
-            if len(e) == 1:
-                continue
-            elif e.name == "script":
-                continue
-            else:
-                entry = {}
-                try:
-                    entry['title'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
-                except:
-                    continue
-                if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
-                    entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
-                else:
-                    entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
-                try:
-                    entry['price'] = e.find("span", {"class":"price-display"}).get_text().replace('$', '')
-                except:
-                    continue
-                entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
-                #entry['az_price'], entry['weight'], entry['az_sales_rank'], entry['az_match'], entry['az_url'], entry['az_asin'] = self.az.find_best_match(entry['title'], 'Toys')
-                #entry['net'] = self.get_net(entry)
-                #entry['roi'] = self.get_roi(entry)
-                self.process_output(entry)
+
+                # entry = {}
+                # try:
+                #     entry['title'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
+                # except:
+                #     continue
+                # if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
+                #     entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
+                # else:
+                #     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
+                # try:
+                #     entry['price'] = e.find("span", {"class":"price-display"}).get_text().replace('$', '')
+                # except:
+                #     continue
+                # entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
+                # entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
 
     def get_page(self, url):
         try:
+            imitate_user(0.2)
             self.logger.info("Getting %s" % url)
             self.driver.get(url)
             # cookie = {'aam_aud': 'dat%3D2950725', 'ttax': 0}
