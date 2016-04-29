@@ -1,0 +1,12 @@
+---
+## output csv file
+output : "../../data/geoout.csv"
+
+# where in wiki we start
+top_url : 'https://en.wikipedia.org/wiki/START'
+
+## global parameters
+depth_limit:  5
+
+## debug
+debug: True
