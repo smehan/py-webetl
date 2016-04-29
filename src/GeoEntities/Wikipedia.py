@@ -45,9 +45,11 @@ class WikiScraper(object):
         self.outfile = settings['output']
         self.depth_limit = settings['depth_limit']
         self.debug = settings['debug']
-        self.fieldnames = ('net', 'roi', 'title', 'price', 'az_price', 'weight',
-                           'az_sales_rank', 'az_match', 'url', 'img', 'az_url', 'az_asin',
-                           'item_id')
+        self.fieldnames = ('FIPS', 'GNIS', 'area-codes', 'county', 'county-url', 'density-2010-sqkm',
+                           'density-2010-sqmi', 'elevation-ft', 'elevation-m', 'geohack-url',
+                           'land-area', 'lat', 'location-img', 'long', 'place-name', 'place-type', 'place-url',
+                           'place-www', 'pop-2010', 'pop-estimate', 'state',
+                           'state-url', 'total-area', 'water-area', 'zips')
         self.top_url = settings['top_url']
         self.base_url = strip_final_slash(get_base_url(self.top_url))
 
@@ -76,14 +78,14 @@ class WikiScraper(object):
         except Exception as e:
             self.logger.error("Error with {} and extraction stopped...".format(url))
             return
-        tmp = self._extract_leaf(self.get_page('https://en.wikipedia.org/wiki/Friendship,_Wisconsin'))
+        tmp = self._extract_leaf(self.get_page('https://en.wikipedia.org/wiki/Racine,_Wisconsin'))
         topcats = self._build_cats(page, lvl='us')
         statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
         countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
         leaves = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[3]), lvl='county') for c in countycats]))
         pprint.pprint(leaves)
         for leaf in leaves:
-            self._extract_leaf(self.get_page(leaf))
+            self._extract_leaf(self.get_page(leaf), url=leaf)
 
     def _build_cats(self, page, lvl=None):
         """parse all the top level links and build a dictionary of containers to walk
@@ -227,62 +229,74 @@ class WikiScraper(object):
                                        delimiter="\t")
         outwriter.writerow(data)
 
-    def _extract_leaf(self, page):
+    def _extract_leaf(self, page, url=None):
         """
-        method takes page from source and parses out items to save.
+        method takes page from source and parses out items to save. Then sends entry to process_output.
         :param page: bs4 object returned from get_page
-        :return: entry for output
+        :param url: string of URL of page
+        :return:
         """
         # no page found, return.
         if page.find("div", {"class": "noarticletext"}):
             self.run = False
             return
-        entry = {}
+        entry = {}  # TODO:  consider a default dict
+        entry['place-url'] = url
         try:
             block = page.find("table", {"class": "geography"})
-            entry['placename']
-            entry['place-url']
-            entry['placetype']
-            entry['county']
-            entry['county-url']
-            entry['state']
-            entry['state-url']
-            entry['location-svg']
-            entry['geohack-url']
-            entry['lat'] = block.find('span', {'class': 'latitude'})
-            entry['long'] = block.find('span', {'class': 'longitude'})
-            entry['total-area']
-            entry['land-area']
-            entry['water-area']
-            entry['elevation-ft']
-            entry['elevation-m']
-            entry['pop-2010']
-            entry['density-2010-imp']
-            entry['density-2010-m']
-            entry['zips'] = block.find('span', {'class': 'adr'}) # this is a list of DDDDD-DDDDDs
-            entry['area-codes']
-            entry['FIPS']
-            entry['GNIS']
-            entry['place-www']
-            self.process_output(entry)
+            entries = block.find_all("tr")
         except:
+            self.logger.warn("No geography vcard found...skipping")
             return
-
-                # entry = {}
-                # try:
-                #     entry['title'] = e.find("a", {"class":"js-product-title"}).get_text().strip()
-                # except:
-                #     continue
-                # if 'http://' in e.find("a", {"class":"js-product-title"}).attrs['href']:
-                #     entry['url'] = e.find("a", {"class":"js-product-title"}).attrs['href']
-                # else:
-                #     entry['url'] = "".join((self.base_url, e.find("a", {"class":"js-product-title"}).attrs['href']))
-                # try:
-                #     entry['price'] = e.find("span", {"class":"price-display"}).get_text().replace('$', '')
-                # except:
-                #     continue
-                # entry['img'] = e.find("img", {"class":"product-image"}).attrs['data-default-image']
-                # entry['item_id'] = e.find("div", {"class": "js-tile", "class": "tile-grid-unit"}).attrs['data-item-id']
+        for e in entries:
+            if e.find("span", {"class": "fn"}):
+                entry['place-name'] = re.search(r'([\w ]+),', e.span.contents[0]).group(1)
+            if e.find("span", {"class": "category"}):
+                entry['place-type'] = e.get_text().strip()
+            if e.find(string='County'):
+                entry['county'] = re.search(r'County\n(\w+)', e.get_text()).group(1)
+                entry['county-url'] = "".join((self.base_url, e.td.a.attrs['href']))
+            if e.find(string='State'):
+                entry['state'] = self._get_state(re.search(r'State\n(\w+)', e.get_text()).group(1))
+                entry['state-url'] = "".join((self.base_url, e.td.a.attrs['href']))
+            if re.search(r'Location', e.get_text()):
+                entry['location-img'] = "".join((self.base_url, e.a.attrs['href']))
+                entry['geohack-url'] = "".join((self.base_url, e.next_sibling.next_sibling.a.attrs['href']))
+            if e.find("span", {"class": "geo"}):
+                entry['lat'], entry['long'] = re.search('\d+\.\d+; -?\d+\.\d+$', e.span.get_text()).group(0).split('; ')
+            if e.find(string='Area'):
+                if re.search(r'Total\n([\d.]+)', e.next_sibling.next_sibling.get_text()):
+                    entry['total-area'] = re.search(r'Total\n([\d.]+)', e.next_sibling.next_sibling.get_text()).group(1)
+                elif re.search(r'City\n([\d.]+)', e.next_sibling.next_sibling.get_text()):
+                    entry['total-area'] = re.search(r'City\n([\d.]+)', e.next_sibling.next_sibling.get_text()).group(1)
+                entry['land-area'] = re.search(r'Land\n([\d.]+)', e.next_sibling.next_sibling.next_sibling.next_sibling.get_text()).group(1)
+                entry['water-area'] = re.search(r'Water\n([\d.]+)', e.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling.get_text()).group(1)
+            if e.find(string='Elevation'):
+                entry['elevation-ft'] = re.search(r'\n(\d+)', e.get_text()).group(1)
+                entry['elevation-m'] = re.search(r'\((\d+)', e.get_text()).group(1)
+            if e.find(string='2010'):
+                if re.search(r'Total', e.next_sibling.next_sibling.get_text()):
+                    entry['pop-2010'] = re.search(r'\n([\d,]+)', e.next_sibling.next_sibling.get_text()).group(1)
+                elif re.search(r'City', e.next_sibling.next_sibling.get_text()):
+                    entry['pop-2010'] = re.search(r'\n([\d,]+)', e.next_sibling.next_sibling.get_text()).group(1)
+                if re.search(r'Estimate', e.next_sibling.next_sibling.next_sibling.next_sibling.get_text()):
+                    entry['pop-estimate'] = re.search(r'\n([\d,]+)', e.next_sibling.next_sibling.next_sibling.next_sibling.get_text()).group(1)
+                elif re.search(r'City\n([\d,]+)', e.next_sibling.next_sibling.next_sibling.next_sibling.get_text()):
+                    entry['pop-estimate'] = re.search(r'\n([\d,]+)', e.next_sibling.next_sibling.next_sibling.next_sibling.get_text()).group(1)
+            if re.search(r'Density', e.get_text()):
+                entry['density-2010-sqmi'] = re.search(r'([\d.,]+)/sq', e.get_text()).group(1)
+                entry['density-2010-sqkm'] = re.search(r'([\d.,]+)/km', e.get_text()).group(1)
+            if re.search(r'ZIP', e.get_text()):
+                entry['zips'] = e.td.get_text()
+            if re.search(r'Area code', e.get_text()):
+                entry['area-codes'] = re.search(r'\d+', e.get_text()).group(0)
+            if re.search(r'FIPS', e.get_text()):
+                entry['FIPS'] = re.search(r'[\d-]+', e.get_text()).group(0)
+            if e.find(string='GNIS'):
+                entry['GNIS'] = re.search(r'\d+', e.get_text()).group(0)
+            if e.find(string='Website'):
+                entry['place-www'] = e.a.attrs['href']
+        self.process_output(entry)
 
     def get_page(self, url):
         try:
