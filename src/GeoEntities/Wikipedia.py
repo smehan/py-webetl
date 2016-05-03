@@ -69,11 +69,11 @@ class WikiScraper(object):
         :return:
         """
         self.run = True  # initialize run
-
         topcats = self._build_cats(self.get_page(self.top_url), lvl='us')
         if self.reuse and os.path.exists('../../data/statecats.pickle'):
             with open('../../data/statecats.pickle', 'rb') as fh:
                 statecats = pickle.load(fh)
+            self.logger.info("States taken from a previous run...")
         else:
             statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
             with open('../../data/statecats.pickle', 'wb') as fh:
@@ -81,13 +81,16 @@ class WikiScraper(object):
         if self.reuse and os.path.exists('../../data/countycats.pickle'):
             with open('../../data/countycats.pickle', 'rb') as fh:
                 countycats = pickle.load(fh)
+            self.logger.info("Counties taken from a previous run...")
         else:
             countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
             with open('../../data/countycats.pickle', 'wb') as fh:
                pickle.dump(countycats, fh, pickle.HIGHEST_PROTOCOL)
+            self.logger.info("Leaves taken from a previous run...")
         if self.reuse and os.path.exists('../../data/leaves.pickle'):
             with open('../../data/leaves.pickle', 'rb') as fh:
                 leaves = pickle.load(fh)
+            self.logger.info("Leaves taken from a previous run...")
         else:
             leaves = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[3]), lvl='county') for c in countycats]))
             with open('../../data/leaves.pickle', 'wb') as fh:
