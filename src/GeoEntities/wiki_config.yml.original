@@ -5,6 +5,9 @@ output : "../../data/geoout.csv"
 # where in wiki we start
 top_url : 'https://en.wikipedia.org/wiki/START'
 
+# Check to see if previous data is there to start activity
+reuse : True
+
 ## global parameters
 depth_limit:  5
 

@@ -43,6 +43,7 @@ class WikiScraper(object):
         self.outfile = settings['output']
         self.depth_limit = settings['depth_limit']
         self.debug = settings['debug']
+        self.reuse = settings['reuse']
         self.fieldnames = ('FIPS', 'GNIS', 'area-codes', 'county', 'county-url', 'density-2010-sqkm',
                            'density-2010-sqmi', 'elevation-ft', 'elevation-m', 'geohack-url',
                            'land-area', 'lat', 'location-img', 'census-map',
@@ -68,26 +69,29 @@ class WikiScraper(object):
         :return:
         """
         self.run = True  # initialize run
-        url = self.top_url
-        try:
-            page = self.get_page(url)
-        except Exception as e:
-            self.logger.error("Error with {} and extraction stopped...".format(url))
-            return
-        topcats = self._build_cats(page, lvl='us')
-        statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
-        with open('../../data/statecats.pickle', 'wb') as fh:
-           pickle.dump(statecats, fh, pickle.HIGHEST_PROTOCOL)
-        countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
-        with open('../../data/countycats.pickle', 'wb') as fh:
-           pickle.dump(countycats, fh, pickle.HIGHEST_PROTOCOL)
-        with open('../../data/countycats.pickle', 'rb') as fh:
-           countycats = pickle.load(fh)
-        leaves = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[3]), lvl='county') for c in countycats]))
-        with open('../../data/leaves.pickle', 'wb') as fh:
-           pickle.dump(leaves, fh, pickle.HIGHEST_PROTOCOL)
-        with open('../../data/leaves.pickle', 'rb') as fh:
-            leaves = pickle.load(fh)
+
+        topcats = self._build_cats(self.get_page(self.top_url), lvl='us')
+        if self.reuse and os.path.exists('../../data/statecats.pickle'):
+            with open('../../data/statecats.pickle', 'rb') as fh:
+                statecats = pickle.load(fh)
+        else:
+            statecats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[1]), lvl='type') for c in topcats]))
+            with open('../../data/statecats.pickle', 'wb') as fh:
+               pickle.dump(statecats, fh, pickle.HIGHEST_PROTOCOL)
+        if self.reuse and os.path.exists('../../data/countycats.pickle'):
+            with open('../../data/countycats.pickle', 'rb') as fh:
+                countycats = pickle.load(fh)
+        else:
+            countycats = list(itertools.chain.from_iterable([self._build_cats(self.get_page(s[2]), lvl='state') for s in statecats]))
+            with open('../../data/countycats.pickle', 'wb') as fh:
+               pickle.dump(countycats, fh, pickle.HIGHEST_PROTOCOL)
+        if self.reuse and os.path.exists('../../data/leaves.pickle'):
+            with open('../../data/leaves.pickle', 'rb') as fh:
+                leaves = pickle.load(fh)
+        else:
+            leaves = list(itertools.chain.from_iterable([self._build_cats(self.get_page(c[3]), lvl='county') for c in countycats]))
+            with open('../../data/leaves.pickle', 'wb') as fh:
+               pickle.dump(leaves, fh, pickle.HIGHEST_PROTOCOL)
         leaf_index = 0
         for leaf in leaves:
             self._progress(leaf_index, len(leaves))
